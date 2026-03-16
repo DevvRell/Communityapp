@@ -1,188 +1,184 @@
-import { useState, useEffect, useRef } from 'react'
-import { Search, MapPin, Phone, Mail, Star, Filter, Building2, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { Search, MapPin, Phone, Mail, Star, Filter, Building2, Plus, CheckCircle } from 'lucide-react'
+import { getBusinesses, searchBusinesses, addBusiness, init } from '../services/mockStore'
 
-// Mock businesses data — swap this file for BusinessDirectory.tsx when API is ready
-const MOCK_BUSINESSES = [
-  {
-    id: 1,
-    name: "Green Valley Café",
-    category: "restaurant",
-    description: "Cozy neighborhood café serving breakfast, lunch, and fresh pastries. Locally sourced ingredients.",
-    address: "124 Main Street",
-    phone: "(555) 123-4567",
-    email: "hello@greenvalleycafe.com",
-    rating: 4.6,
-    reviews: 128,
-    hours: "Mon–Fri 7am–4pm, Sat–Sun 8am–3pm",
-  },
-  {
-    id: 2,
-    name: "Downtown Hardware",
-    category: "retail",
-    description: "Family-owned hardware store with tools, paint, and home improvement supplies for over 30 years.",
-    address: "45 Oak Avenue",
-    phone: "(555) 234-5678",
-    email: "info@downtownhardware.com",
-    rating: 4.8,
-    reviews: 89,
-    hours: "Mon–Sat 8am–6pm",
-  },
-  {
-    id: 3,
-    name: "Riverside Dental",
-    category: "health",
-    description: "Full-service dental care for the whole family. Cleanings, orthodontics, and emergency care.",
-    address: "200 River Road, Suite 101",
-    phone: "(555) 345-6789",
-    email: "appointments@riversidedental.com",
-    rating: 4.9,
-    reviews: 204,
-    hours: "Mon–Thu 8am–6pm, Fri 8am–2pm",
-  },
-  {
-    id: 4,
-    name: "Tech Solutions LLC",
-    category: "technology",
-    description: "Computer repair, IT support, and smart home setup. We come to you.",
-    address: "88 Commerce Drive",
-    phone: "(555) 456-7890",
-    email: "support@techsolutions.com",
-    rating: 4.7,
-    reviews: 56,
-    hours: "Mon–Fri 9am–5pm",
-  },
-  {
-    id: 5,
-    name: "Sunset Pizza",
-    category: "restaurant",
-    description: "Wood-fired pizzas, pasta, and salads. Dine-in or takeout. Family-friendly.",
-    address: "312 Elm Street",
-    phone: "(555) 567-8901",
-    email: "order@sunsetpizza.com",
-    rating: 4.5,
-    reviews: 312,
-    hours: "Tue–Sun 11am–10pm",
-  },
-  {
-    id: 6,
-    name: "Community Fitness",
-    category: "services",
-    description: "Gym, classes, and personal training. Day passes and memberships available.",
-    address: "500 Park Lane",
-    phone: "(555) 678-9012",
-    email: "info@communityfitness.com",
-    rating: 4.4,
-    reviews: 167,
-    hours: "Mon–Fri 5am–10pm, Sat–Sun 7am–8pm",
-  },
-  {
-    id: 7,
-    name: "Village Bookshop",
-    category: "retail",
-    description: "Independent bookstore with new and used books, gifts, and a reading nook.",
-    address: "22 Center Street",
-    phone: "(555) 789-0123",
-    email: "books@villagebookshop.com",
-    rating: 4.9,
-    reviews: 98,
-    hours: "Mon–Sat 10am–6pm",
-  },
+init()
+
+const CATEGORIES = [
+  { value: 'all', label: 'All Categories' },
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'retail', label: 'Retail' },
+  { value: 'services', label: 'Services' },
+  { value: 'health', label: 'Health & Wellness' },
+  { value: 'technology', label: 'Technology' },
+  { value: 'other', label: 'Other' },
 ]
+
+const BLANK_FORM = {
+  name: '', category: '', description: '', address: '',
+  phone: '', email: '', hours: '',
+}
 
 const BusinessDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const searchInputRef = useRef(null)
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState(BLANK_FORM)
+  const [submitting, setSubmitting] = useState(false)
+  const [successMsg, setSuccessMsg] = useState(null)
+  const [, forceRender] = useState(0)
+  const refresh = () => forceRender(n => n + 1)
 
-  const hasSearchTerm = searchTerm.trim().length > 0
-  const searchLoading = false
+  const hasSearch = searchTerm.trim().length > 0
+  const displayed = hasSearch
+    ? searchBusinesses(searchTerm.trim())
+    : getBusinesses('APPROVED').filter(b =>
+        selectedCategory === 'all' || b.category === selectedCategory
+      )
 
-  useEffect(() => {
-    if (searchTerm.length === 1 && searchInputRef.current && document.activeElement !== searchInputRef.current) {
-      setTimeout(() => {
-        searchInputRef.current?.focus()
-      }, 10)
-    }
-  }, [searchTerm])
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    addBusiness(formData)
+    setSubmitting(false)
+    setSuccessMsg('Your business has been submitted for review. It will appear in the directory once approved.')
+    setFormData(BLANK_FORM)
+    setShowForm(false)
+    refresh()
+  }
 
-  const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'restaurant', label: 'Restaurant' },
-    { value: 'retail', label: 'Retail' },
-    { value: 'services', label: 'Services' },
-    { value: 'health', label: 'Health & Wellness' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'other', label: 'Other' }
-  ]
-
-  const filteredBusinesses = MOCK_BUSINESSES.filter((business) => {
-    const matchesCategory = selectedCategory === 'all' || business.category === selectedCategory
-    const matchesSearch = !searchTerm.trim() ||
-      business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      business.description.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch
+  const field = (key) => ({
+    value: formData[key],
+    onChange: (e) => setFormData(f => ({ ...f, [key]: e.target.value })),
   })
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Business Directory</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Discover and support local businesses in your community. Find everything you need right in your neighborhood.
+            Discover and support local businesses in your community.
           </p>
         </div>
 
-        {/* Search and Filter */}
+        {/* Success banner */}
+        {successMsg && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <CheckCircle className="text-green-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-green-800 font-medium">Submission received!</p>
+              <p className="text-green-700 text-sm mt-1">{successMsg}</p>
+            </div>
+            <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-500 hover:text-green-700 text-xl leading-none">×</button>
+          </div>
+        )}
+
+        {/* Search, Filter, Submit button */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${searchTerm ? 'text-primary-600' : 'text-gray-400'} transition-colors duration-200`} size={20} />
-              {hasSearchTerm && searchLoading && (
-                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600 animate-spin" size={20} />
-              )}
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
-                ref={searchInputRef}
                 type="text"
                 placeholder="Search businesses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`input-field pl-10 ${searchTerm ? 'pr-10 border-primary-300 focus:border-primary-500 focus:ring-primary-500' : ''} transition-all duration-200`}
-                autoFocus={false}
+                className="input-field pl-10"
               />
             </div>
 
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <select
                 value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value)
-                  setSearchTerm('')
-                }}
+                onChange={(e) => { setSelectedCategory(e.target.value); setSearchTerm('') }}
                 className="input-field pl-10"
               >
-                {categories.map(category => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
-                ))}
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
 
-            <div className="flex items-center justify-center md:justify-end">
-              <span className="text-gray-600">
-                {filteredBusinesses.length} business{filteredBusinesses.length !== 1 ? 'es' : ''} found
-                {hasSearchTerm && ` for "${searchTerm.trim()}"`}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-gray-600 text-sm">
+                {displayed.length} business{displayed.length !== 1 ? 'es' : ''} found
+                {hasSearch && ` for "${searchTerm.trim()}"`}
               </span>
+              <button
+                onClick={() => { setShowForm(v => !v); setSuccessMsg(null) }}
+                className="btn-primary flex items-center gap-2 text-sm whitespace-nowrap"
+              >
+                <Plus size={16} />
+                Add Business
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Business Listings */}
+        {/* Submission form */}
+        {showForm && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Submit a Business</h2>
+            <p className="text-sm text-gray-500 mb-6">Submissions are reviewed before appearing in the directory.</p>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
+                  <input type="text" className="input-field" required placeholder="e.g. Joe's Coffee" {...field('name')} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                  <select className="input-field" required {...field('category')}>
+                    <option value="">Select a category</option>
+                    {CATEGORIES.filter(c => c.value !== 'all').map(c =>
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <textarea className="input-field" rows={3} required placeholder="What does this business offer?" {...field('description')} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+                  <input type="text" className="input-field" required placeholder="123 Main St" {...field('address')} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                  <input type="tel" className="input-field" required placeholder="(555) 000-0000" {...field('phone')} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <input type="email" className="input-field" required placeholder="contact@business.com" {...field('email')} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hours</label>
+                  <input type="text" className="input-field" placeholder="Mon–Fri 9am–5pm" {...field('hours')} />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? 'Submitting…' : 'Submit for Review'}
+                </button>
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Listings grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBusinesses.map((business) => (
+          {displayed.map((business) => (
             <div key={business.id} className="card hover:shadow-lg transition-all duration-300">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -196,60 +192,48 @@ const BusinessDirectory = () => {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="text-yellow-400" size={16} />
-                  <span className="text-sm font-medium">{business.rating.toFixed(1)}</span>
-                  <span className="text-sm text-gray-500">({business.reviews})</span>
-                </div>
+                {business.rating > 0 && (
+                  <div className="flex items-center space-x-1">
+                    <Star className="text-yellow-400" size={16} />
+                    <span className="text-sm font-medium">{Number(business.rating).toFixed(1)}</span>
+                    <span className="text-sm text-gray-500">({business.reviews})</span>
+                  </div>
+                )}
               </div>
 
               <p className="text-gray-600 mb-4">{business.description}</p>
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="mr-2" size={16} />
-                  {business.address}
+                  <MapPin className="mr-2 shrink-0" size={16} />{business.address}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="mr-2" size={16} />
-                  {business.phone}
+                  <Phone className="mr-2 shrink-0" size={16} />{business.phone}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="mr-2" size={16} />
-                  {business.email}
+                  <Mail className="mr-2 shrink-0" size={16} />{business.email}
                 </div>
               </div>
 
               {business.hours && (
                 <div className="border-t border-gray-200 pt-4">
-                  <p className="text-sm text-gray-600">
-                    <strong>Hours:</strong> {business.hours}
-                  </p>
+                  <p className="text-sm text-gray-600"><strong>Hours:</strong> {business.hours}</p>
                 </div>
               )}
 
               <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-200">
-                <a
-                  href={`mailto:${business.email}`}
-                  className="btn-primary flex-1 text-sm text-center"
-                >
-                  Contact
-                </a>
-                <button className="btn-secondary text-sm">
-                  Directions
-                </button>
+                <a href={`mailto:${business.email}`} className="btn-primary flex-1 text-sm text-center">Contact</a>
+                <button className="btn-secondary text-sm">Directions</button>
               </div>
             </div>
           ))}
         </div>
 
-        {filteredBusinesses.length === 0 && (
+        {displayed.length === 0 && (
           <div className="text-center py-12">
             <Building2 className="mx-auto text-gray-400 mb-4" size={48} />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No businesses found</h3>
-            <p className="text-gray-600">
-              Try adjusting your search terms or category filter to find what you're looking for.
-            </p>
+            <p className="text-gray-600">Try adjusting your search or category filter.</p>
           </div>
         )}
       </div>

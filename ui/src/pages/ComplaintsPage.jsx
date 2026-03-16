@@ -1,165 +1,79 @@
 import { useState } from 'react'
 import { MessageSquare, AlertCircle, CheckCircle, Clock, MapPin, Plus, Filter } from 'lucide-react'
+import { getComplaints, addComplaint, init } from '../services/mockStore'
 
-// Mock complaints data — swap this file for ComplaintsPage.tsx when API is ready
-const MOCK_COMPLAINTS = [
-  {
-    id: 1,
-    title: 'Pothole on Oak Street',
-    description: 'Large pothole near the intersection of Oak and Main. Several cars have been damaged.',
-    category: 'Roads & Sidewalks',
-    location: 'Oak Street & Main',
-    status: 'in-progress',
-    priority: 'high',
-    submittedBy: 'Jane Doe',
-    submittedDate: '2026-02-01T10:00:00Z',
-    resolvedDate: null,
-    response: 'Our crew has been assigned. Repairs scheduled for next week.',
-  },
-  {
-    id: 2,
-    title: 'Streetlight out on Park Lane',
-    description: 'The streetlight at 500 Park Lane has been dark for two weeks. Safety concern at night.',
-    category: 'Infrastructure',
-    location: '500 Park Lane',
-    status: 'pending',
-    priority: 'medium',
-    submittedBy: 'John Smith',
-    submittedDate: '2026-02-10T14:30:00Z',
-    resolvedDate: null,
-    response: null,
-  },
-  {
-    id: 3,
-    title: 'Noise from construction after hours',
-    description: 'Construction on Commerce Drive continues past 7 PM on weekdays. Very disruptive.',
-    category: 'Noise',
-    location: 'Commerce Drive',
-    status: 'resolved',
-    priority: 'medium',
-    submittedBy: 'Maria Garcia',
-    submittedDate: '2026-01-15T09:00:00Z',
-    resolvedDate: '2026-01-22T00:00:00Z',
-    response: 'Spoke with contractor. They will adhere to 6 PM cutoff. Thank you for reporting.',
-  },
-  {
-    id: 4,
-    title: 'Overflowing recycling bins',
-    description: 'Recycling bins at the corner of Elm and 5th have been overflowing for days.',
-    category: 'Sanitation',
-    location: 'Elm Street & 5th Avenue',
-    status: 'resolved',
-    priority: 'low',
-    submittedBy: 'Robert Lee',
-    submittedDate: '2026-02-05T11:00:00Z',
-    resolvedDate: '2026-02-07T00:00:00Z',
-    response: 'Bins have been emptied and pickup schedule verified. Thanks for letting us know.',
-  },
-  {
-    id: 5,
-    title: 'Broken swing in Riverside Park',
-    description: 'One of the swings in the playground is broken and could be dangerous for kids.',
-    category: 'Parks & Recreation',
-    location: 'Riverside Park playground',
-    status: 'pending',
-    priority: 'high',
-    submittedBy: 'Sarah Chen',
-    submittedDate: '2026-02-12T16:00:00Z',
-    resolvedDate: null,
-    response: null,
-  },
+init()
+
+const COMPLAINT_CATEGORIES = [
+  'Infrastructure', 'Roads & Sidewalks', 'Noise',
+  'Sanitation', 'Parks & Recreation', 'Traffic', 'Safety', 'Other',
 ]
+
+const PRIORITIES = [
+  { value: 'low',    label: 'Low',    color: 'bg-green-100 text-green-800' },
+  { value: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'high',   label: 'High',   color: 'bg-red-100 text-red-800' },
+]
+
+const STATUSES = [
+  { value: 'all',         label: 'All Statuses' },
+  { value: 'pending',     label: 'Pending' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'resolved',    label: 'Resolved' },
+]
+
+const BLANK_FORM = {
+  title: '', description: '', category: '',
+  location: '', submittedBy: '', priority: 'medium',
+}
+
+const getStatusIcon = (status) => {
+  if (status === 'resolved')    return <CheckCircle className="text-green-600" size={20} />
+  if (status === 'in-progress') return <Clock className="text-yellow-600" size={20} />
+  return <AlertCircle className="text-red-600" size={20} />
+}
+
+const getStatusColor = (status) => {
+  if (status === 'resolved')    return 'bg-green-100 text-green-800'
+  if (status === 'in-progress') return 'bg-yellow-100 text-yellow-800'
+  return 'bg-red-100 text-red-800'
+}
+
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 
 const ComplaintsPage = () => {
   const [showForm, setShowForm] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [complaints, setComplaints] = useState(MOCK_COMPLAINTS)
-  const [creating, setCreating] = useState(false)
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-    location: '',
-    submittedBy: '',
-    priority: 'medium',
-  })
+  const [formData, setFormData] = useState(BLANK_FORM)
+  const [submitting, setSubmitting] = useState(false)
+  const [successMsg, setSuccessMsg] = useState(null)
+  const [, forceRender] = useState(0)
+  const refresh = () => forceRender(n => n + 1)
 
-  const categories = [
-    "Infrastructure",
-    "Roads & Sidewalks",
-    "Noise",
-    "Sanitation",
-    "Parks & Recreation",
-    "Traffic",
-    "Safety",
-    "Other"
-  ]
+  // Only show APPROVED complaints publicly; filter by operational status client-side
+  const complaints = getComplaints({ status: selectedStatus === 'all' ? null : selectedStatus })
 
-  const priorities = [
-    { value: "low", label: "Low", color: "bg-green-100 text-green-800" },
-    { value: "medium", label: "Medium", color: "bg-yellow-100 text-yellow-800" },
-    { value: "high", label: "High", color: "bg-red-100 text-red-800" }
-  ]
-
-  const statuses = [
-    { value: "all", label: "All Statuses" },
-    { value: "pending", label: "Pending" },
-    { value: "in-progress", label: "In Progress" },
-    { value: "resolved", label: "Resolved" }
-  ]
-
-  const filteredComplaints = selectedStatus === 'all'
-    ? complaints
-    : complaints.filter((c) => c.status === selectedStatus)
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    setCreating(true)
-    const newComplaint = {
-      id: Math.max(0, ...complaints.map((c) => c.id)) + 1,
-      title: formData.title,
-      description: formData.description,
-      category: formData.category,
-      location: formData.location,
-      status: 'pending',
-      priority: formData.priority,
-      submittedBy: formData.submittedBy,
-      submittedDate: new Date().toISOString(),
-      resolvedDate: null,
-      response: null,
-    }
-    setComplaints((prev) => [newComplaint, ...prev])
-    setCreating(false)
+    setSubmitting(true)
+    addComplaint(formData)
+    setSubmitting(false)
+    setSuccessMsg('Your complaint has been submitted for review. It will appear publicly once approved.')
+    setFormData(BLANK_FORM)
     setShowForm(false)
-    setFormData({ title: '', description: '', category: '', location: '', submittedBy: '', priority: 'medium' })
+    refresh()
   }
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'resolved': return <CheckCircle className="text-green-600" size={20} />
-      case 'in-progress': return <Clock className="text-yellow-600" size={20} />
-      case 'pending': return <AlertCircle className="text-red-600" size={20} />
-      default: return <MessageSquare className="text-gray-600" size={20} />
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'resolved': return 'bg-green-100 text-green-800'
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800'
-      case 'pending': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-  }
+  const field = (key) => ({
+    value: formData[key],
+    onChange: (e) => setFormData(f => ({ ...f, [key]: e.target.value })),
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Community Complaints</h1>
@@ -169,39 +83,43 @@ const ComplaintsPage = () => {
           </p>
         </div>
 
-        {/* Action Bar */}
+        {/* Success banner */}
+        {successMsg && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <CheckCircle className="text-green-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-green-800 font-medium">Complaint submitted!</p>
+              <p className="text-green-700 text-sm mt-1">{successMsg}</p>
+            </div>
+            <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-500 hover:text-green-700 text-xl leading-none">×</button>
+          </div>
+        )}
+
+        {/* Action bar */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Plus size={16} />
-                <span>Submit New Complaint</span>
-              </button>
-            </div>
+            <button
+              onClick={() => { setShowForm(v => !v); setSuccessMsg(null) }}
+              className="btn-primary flex items-center space-x-2"
+            >
+              <Plus size={16} />
+              <span>Submit New Complaint</span>
+            </button>
 
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="input-field pl-10"
-                >
-                  {statuses.map(status => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="input-field pl-10"
+              >
+                {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Complaint Form */}
+        {/* Complaint form */}
         {showForm && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Submit New Complaint</h2>
@@ -209,99 +127,53 @@ const ComplaintsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                  <input
-                    type="text"
-                    placeholder="Brief description of the issue"
-                    className="input-field"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
+                  <input type="text" className="input-field" required placeholder="Brief description of the issue" {...field('title')} />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                  <select
-                    className="input-field"
-                    required
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  >
+                  <select className="input-field" required {...field('category')}>
                     <option value="">Select a category</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
+                    {COMPLAINT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-                <textarea
-                  placeholder="Provide detailed information about the issue..."
-                  rows={4}
-                  className="input-field"
-                  required
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
+                <textarea className="input-field" rows={4} required placeholder="Provide detailed information about the issue..." {...field('description')} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
-                  <input
-                    type="text"
-                    placeholder="Where is this issue located?"
-                    className="input-field"
-                    required
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
+                  <input type="text" className="input-field" required placeholder="Where is this issue located?" {...field('location')} />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Priority *</label>
-                  <select
-                    className="input-field"
-                    required
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  >
-                    {priorities.map(priority => (
-                      <option key={priority.value} value={priority.value}>{priority.label}</option>
-                    ))}
+                  <select className="input-field" required {...field('priority')}>
+                    {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Your Name *</label>
-                <input
-                  type="text"
-                  placeholder="Enter your name"
-                  className="input-field"
-                  required
-                  value={formData.submittedBy}
-                  onChange={(e) => setFormData({ ...formData, submittedBy: e.target.value })}
-                />
+                <input type="text" className="input-field" required placeholder="Enter your name" {...field('submittedBy')} />
               </div>
 
               <div className="flex space-x-4">
-                <button type="submit" className="btn-primary" disabled={creating}>
-                  {creating ? 'Submitting...' : 'Submit Complaint'}
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? 'Submitting…' : 'Submit Complaint'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
-                  Cancel
-                </button>
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
               </div>
             </form>
           </div>
         )}
 
-        {/* Complaints List */}
+        {/* Complaints list */}
         <div className="space-y-6">
-          {filteredComplaints.map((complaint) => (
+          {complaints.map((complaint) => (
             <div key={complaint.id} className="card">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -315,11 +187,11 @@ const ComplaintsPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(complaint.status)}`}>
                     {complaint.status.replace('-', ' ').toUpperCase()}
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${priorities.find(p => p.value === complaint.priority)?.color}`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${PRIORITIES.find(p => p.value === complaint.priority)?.color}`}>
                     {complaint.priority.toUpperCase()}
                   </span>
                 </div>
@@ -329,7 +201,7 @@ const ComplaintsPage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="mr-2" size={16} />
+                  <MapPin className="mr-2 shrink-0" size={16} />
                   <span>{complaint.location}</span>
                 </div>
                 <div className="text-sm text-gray-600">
@@ -339,12 +211,10 @@ const ComplaintsPage = () => {
 
               {complaint.response && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Response:</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">Official Response:</h4>
                   <p className="text-gray-600">{complaint.response}</p>
                   {complaint.resolvedDate && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      Resolved on {formatDate(complaint.resolvedDate)}
-                    </p>
+                    <p className="text-sm text-gray-500 mt-2">Resolved on {formatDate(complaint.resolvedDate)}</p>
                   )}
                 </div>
               )}
@@ -352,26 +222,26 @@ const ComplaintsPage = () => {
           ))}
         </div>
 
-        {filteredComplaints.length === 0 && (
+        {complaints.length === 0 && (
           <div className="text-center py-12">
             <MessageSquare className="mx-auto text-gray-400 mb-4" size={48} />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No complaints found</h3>
             <p className="text-gray-600">
               {selectedStatus === 'all'
-                ? "No complaints have been submitted yet. Be the first to report an issue!"
-                : `No complaints with status "${selectedStatus}" found.`
-              }
+                ? 'No complaints have been approved yet.'
+                : `No complaints with status "${selectedStatus}" found.`}
             </p>
           </div>
         )}
 
+        {/* Stats */}
         {complaints.length > 0 && (
           <div className="mt-16 bg-white rounded-lg shadow-md p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Complaint Statistics</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-primary-600 mb-2">{complaints.length}</div>
-                <div className="text-gray-600">Total Complaints</div>
+                <div className="text-gray-600">Total</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-green-600 mb-2">
