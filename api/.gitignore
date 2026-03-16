@@ -1,0 +1,173 @@
+# ==========================================
+# Node.js Dependencies
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+# package-lock.json - Keep this for reproducible builds
+yarn.lock
+pnpm-lock.yaml
+
+# ==========================================
+# TypeScript Build Output
+# ==========================================
+dist/
+build/
+*.tsbuildinfo
+*.js.map
+
+# ==========================================
+# Environment Variables
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.*.local
+
+# ==========================================
+# IDE and Editor Files
+# ==========================================
+# VSCode / Cursor
+.vscode/
+.cursor/
+*.code-workspace
+
+# IntelliJ / WebStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ==========================================
+# Operating System Files
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ==========================================
+# Docker
+# ==========================================
+# Don't ignore docker-compose.yml and Dockerfile
+# But ignore local overrides
+docker-compose.override.yml
+.dockerignore.local
+
+# ==========================================
+# Database
+# ==========================================
+# PostgreSQL local data
+postgres_data/
+pgdata/
+*.sql.backup
+*.dump
+
+# Database migrations backup
+migrations/*.backup
+
+# ==========================================
+# Logs
+# ==========================================
+logs/
+*.log
+combined.log
+error.log
+access.log
+
+# ==========================================
+# Test Coverage
+# ==========================================
+coverage/
+*.lcov
+.nyc_output/
+.jest/
+
+# ==========================================
+# Temporary Files
+# ==========================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# ==========================================
+# Security & Secrets
+# ==========================================
+# SSL certificates
+*.pem
+*.key
+*.cert
+*.crt
+
+# Secrets
+secrets/
+.secrets/
+
+# ==========================================
+# Miscellaneous
+# ==========================================
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional prettier cache
+.prettiercache
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Backup files
+*.backup
+*~
+
+/src/generated/prisma

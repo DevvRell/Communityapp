@@ -1,0 +1,22 @@
+services:
+  - type: static
+    name: the-competent-community-ui
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x
+      # Add your environment variables here
+      # - key: VITE_API_URL
+      #   value: your_api_url_here
+      # - key: VITE_WEATHER_API_KEY
+      #   value: your_weather_api_key_here
+      # - key: VITE_GOOGLE_MAPS_API_KEY
+      #   value: your_google_maps_api_key_here
+    # IMPORTANT: Configure SPA routing rewrite in Render Dashboard:
+    # Go to your Static Site → Redirects/Rewrites tab
+    # Add a rewrite rule:
+    #   Source Path: /*
+    #   Destination Path: /index.html
+    #   Action: Rewrite (not Redirect)
+    # This ensures all routes serve index.html for client-side routing

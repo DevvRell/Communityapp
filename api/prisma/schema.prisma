@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Business {
+  id                Int              @id @default(autoincrement())
+  name              String
+  category          String
+  description       String
+  address           String
+  phone             String
+  email             String
+  rating            Decimal          @default(0) @db.Decimal(4, 2)
+  reviews           Int              @default(0)
+  hours             String
+  submissionStatus  SubmissionStatus @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([category])
+  @@index([name])
+  @@index([submissionStatus])
+  @@map("businesses")
+}
+
+model Complaint {
+  id                Int               @id @default(autoincrement())
+  title             String
+  description       String
+  category          String
+  location          String
+  status            ComplaintStatus   @default(PENDING)
+  priority          ComplaintPriority @default(MEDIUM)
+  submittedBy       String
+  submittedDate     DateTime         @default(now())
+  resolvedDate      DateTime?
+  response          String?
+  submissionStatus  SubmissionStatus @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([submissionStatus])
+  @@map("complaints")
+}
+
+model Event {
+  id                Int              @id @default(autoincrement())
+  title             String
+  category          String
+  description       String
+  date              DateTime         @db.Date
+  time              String
+  location          String
+  organizer         String
+  attendees         Int             @default(0)
+  maxAttendees      Int
+  image             String?
+  submissionStatus  SubmissionStatus @default(PENDING)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([category])
+  @@index([date])
+  @@index([submissionStatus])
+  @@map("events")
+}
+
+model Photo {
+  id                Int              @id @default(autoincrement())
+  submittedBy       String?
+  storedPath        String
+  mimeType          String
+  originalName      String
+  fileSize          Int?
+  submissionStatus  SubmissionStatus @default(PENDING)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([submissionStatus])
+  @@map("photos")
+}
+
+enum ComplaintStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
