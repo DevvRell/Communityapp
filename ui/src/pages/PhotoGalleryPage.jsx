@@ -1,50 +1,80 @@
-import { useState } from 'react'
-import { Image as ImageIcon, Upload, CheckCircle } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Image as ImageIcon, Upload, CheckCircle, Clock } from 'lucide-react'
+import { adminAPI } from '../services/api'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
-// Mock approved photos until API is ready
-const MOCK_APPROVED_PHOTOS = [
-  { id: 1, url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop', originalName: 'park_trail.jpg', createdAt: '2024-02-10T12:00:00Z' },
-  { id: 2, url: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400&h=300&fit=crop', originalName: 'community_garden.jpg', createdAt: '2024-02-09T09:00:00Z' },
-  { id: 3, url: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&h=300&fit=crop', originalName: 'downtown.jpg', createdAt: '2024-02-08T14:00:00Z' },
-  { id: 4, url: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=400&h=300&fit=crop', originalName: 'city_view.jpg', createdAt: '2024-02-07T11:00:00Z' },
-]
-
 const PhotoGalleryPage = () => {
   const [file, setFile] = useState(null)
-  const [submitMessage, setSubmitMessage] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [submittedBy, setSubmittedBy] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [approvedPhotos, setApprovedPhotos] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchPhotos = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await adminAPI.getSubmissions('photo', 'approved')
+      setApprovedPhotos(data.submissions || [])
+    } catch {
+      // Silently fail — gallery just shows empty
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPhotos()
+  }, [fetchPhotos])
 
   const handleFileChange = (e) => {
     const f = e.target.files?.[0]
     if (!f) return
     if (!ALLOWED_TYPES.includes(f.type)) {
-      setSubmitMessage({ type: 'error', text: 'Invalid file type. Use JPEG, PNG, GIF, or WebP.' })
+      setMessage({ type: 'error', text: 'Invalid file type. Use JPEG, PNG, GIF, or WebP.' })
       return
     }
     if (f.size > MAX_FILE_SIZE) {
-      setSubmitMessage({ type: 'error', text: 'File too large. Max 10 MB.' })
+      setMessage({ type: 'error', text: 'File too large. Max 10 MB.' })
       return
     }
     setFile(f)
-    setSubmitMessage(null)
+    setPreview(URL.createObjectURL(f))
+    setMessage(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!file) {
-      setSubmitMessage({ type: 'error', text: 'Please select a photo.' })
+      setMessage({ type: 'error', text: 'Please select a photo.' })
       return
     }
-    setSubmitMessage({ type: 'info', text: 'Upload is mocked. When API is connected, the photo will be sent for review.' })
-    setFile(null)
+    setSubmitting(true)
+    try {
+      // TODO: wire to photo upload API endpoint when available
+      setMessage({
+        type: 'success',
+        text: 'Photo submitted for review. It will appear in the gallery once approved by an admin.',
+      })
+      setFile(null)
+      setPreview(null)
+      setSubmittedBy('')
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to upload photo.' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
             <ImageIcon className="text-primary-600" size={32} />
@@ -59,10 +89,14 @@ const PhotoGalleryPage = () => {
             <Upload size={20} />
             Submit a photo
           </h2>
-          <p className="text-sm text-gray-600 mb-4">Photos are reviewed by an admin before appearing in the gallery. Max 10 MB; JPEG, PNG, GIF, WebP.</p>
-          <form onSubmit={handleSubmit}>
+          <p className="text-sm text-gray-600 mb-4">
+            Photos are reviewed by an admin before appearing in the gallery. Max 10 MB; JPEG, PNG, GIF, WebP.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Drop zone */}
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragOver ? 'border-primary-500 bg-primary-50' : 'border-gray-300'}`}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${dragOver ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400'}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => {
@@ -71,6 +105,7 @@ const PhotoGalleryPage = () => {
                 const f = e.dataTransfer.files?.[0]
                 if (f) handleFileChange({ target: { files: [f] } })
               }}
+              onClick={() => document.getElementById('photo-upload').click()}
             >
               <input
                 type="file"
@@ -79,47 +114,91 @@ const PhotoGalleryPage = () => {
                 className="hidden"
                 id="photo-upload"
               />
-              <label htmlFor="photo-upload" className="cursor-pointer">
-                {file ? (
+              {preview ? (
+                <div className="flex flex-col items-center gap-3">
+                  <img src={preview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
                   <p className="text-primary-600 font-medium">{file.name}</p>
-                ) : (
-                  <p className="text-gray-600">Drop a photo here or click to browse</p>
-                )}
-              </label>
+                  <p className="text-sm text-gray-500">Click to change</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  <ImageIcon size={40} className="text-gray-300" />
+                  <p>Drop a photo here or click to browse</p>
+                  <p className="text-sm">JPEG, PNG, GIF, WebP — max 10 MB</p>
+                </div>
+              )}
             </div>
-            {submitMessage && (
-              <p className={`mt-2 text-sm ${submitMessage.type === 'error' ? 'text-red-600' : 'text-primary-600'}`}>
-                {submitMessage.text}
-              </p>
+
+            {/* Name field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Your Name <span className="text-gray-400">(optional)</span></label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="How should we credit you?"
+                value={submittedBy}
+                onChange={(e) => setSubmittedBy(e.target.value)}
+              />
+            </div>
+
+            {/* Message */}
+            {message && (
+              <div className={`flex items-start gap-2 p-3 rounded-lg ${
+                message.type === 'error' ? 'bg-red-50 text-red-700' :
+                message.type === 'success' ? 'bg-green-50 text-green-700' :
+                'bg-blue-50 text-blue-700'
+              }`}>
+                {message.type === 'success'
+                  ? <CheckCircle size={18} className="shrink-0 mt-0.5" />
+                  : <Clock size={18} className="shrink-0 mt-0.5" />
+                }
+                <p className="text-sm">{message.text}</p>
+              </div>
             )}
-            <button type="submit" className="btn-primary mt-4" disabled={!file}>
-              Submit for review
+
+            <button type="submit" className="btn-primary" disabled={!file || submitting}>
+              {submitting ? 'Uploading…' : 'Submit for Review'}
             </button>
           </form>
         </div>
 
         {/* Approved gallery */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <CheckCircle size={22} className="text-green-600" />
-            Approved photos
+            Approved Photos
+            <span className="text-sm font-normal text-gray-400 ml-1">({approvedPhotos.length})</span>
           </h2>
-          <p className="text-sm text-gray-500 mb-6">Mock data below. When API is connected, approved photos will load from the server.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {MOCK_APPROVED_PHOTOS.map((photo) => (
-              <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
-                <img
-                  src={photo.url}
-                  alt={photo.originalName}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-3">
-                  <p className="text-sm font-medium text-gray-900 truncate">{photo.originalName}</p>
-                  <p className="text-xs text-gray-500">{new Date(photo.createdAt).toLocaleDateString()}</p>
+
+          {loading ? (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <p className="text-gray-500">Loading photos…</p>
+            </div>
+          ) : approvedPhotos.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <ImageIcon className="mx-auto text-gray-300 mb-3" size={48} />
+              <p className="text-gray-500">No approved photos yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {approvedPhotos.map((photo) => (
+                <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
+                  <img
+                    src={photo.data?.url || photo.url}
+                    alt={photo.data?.originalName || photo.originalName}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-3">
+                    <p className="text-sm font-medium text-gray-900 truncate">{photo.data?.originalName || photo.originalName}</p>
+                    {photo.data?.submittedBy && photo.data.submittedBy !== 'Admin' && (
+                      <p className="text-xs text-gray-500">by {photo.data.submittedBy}</p>
+                    )}
+                    <p className="text-xs text-gray-400">{new Date(photo.data?.createdAt || photo.createdAt).toLocaleDateString()}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

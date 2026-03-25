@@ -33,12 +33,17 @@
     "typescript": "^5.2.2",
     "vite": "^4.1.0"
   },
-  "keywords": ["community", "webapp", "react"],
+  "keywords": [
+    "community",
+    "webapp",
+    "react"
+  ],
   "author": "The Competent Community",
   "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
-  }
-} 
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
