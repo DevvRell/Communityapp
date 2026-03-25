@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, MapPin, Phone, Mail, Star, Filter, Building2, Loader2 } from 'lucide-react'
+import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2 } from 'lucide-react'
 import { useBusinesses, useSearchBusinesses } from '../services/apiClient'
 import { useDebounce } from '../hooks/useDebounce'
 import type { Business } from '../types/api'
@@ -26,12 +26,13 @@ const BusinessDirectory = () => {
 
   const categories = [
     { value: 'all', label: 'All Categories' },
-    { value: 'restaurant', label: 'Restaurant' },
-    { value: 'retail', label: 'Retail' },
-    { value: 'services', label: 'Services' },
-    { value: 'health', label: 'Health & Wellness' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'other', label: 'Other' }
+    { value: 'Food', label: 'Food & Dining' },
+    { value: 'Retail', label: 'Retail' },
+    { value: 'Professional Services', label: 'Professional Services' },
+    { value: 'General Services', label: 'General Services' },
+    { value: 'Non-Profit', label: 'Non-Profit' },
+    { value: 'Family Services', label: 'Family Services' },
+    { value: 'Entertainment', label: 'Entertainment' },
   ]
 
   // When searching, use search results; otherwise use category-filtered list from API
@@ -129,8 +130,8 @@ const BusinessDirectory = () => {
         {/* Business Listings */}
         <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-300 ${hasSearchTerm && searchLoading ? 'opacity-75' : 'opacity-100'}`}>
           {displayedBusinesses.map((business: Business) => (
-            <div 
-              key={business.id} 
+            <div
+              key={business.id}
               className="card hover:shadow-lg transition-all duration-300"
             >
               {/* Business Header */}
@@ -141,9 +142,16 @@ const BusinessDirectory = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 text-lg">{business.name}</h3>
-                    <span className="text-sm text-primary-600 bg-primary-50 px-2 py-1 rounded-full">
-                      {business.category}
-                    </span>
+                    <div className="flex items-center gap-1 flex-wrap mt-1">
+                      <span className="text-sm text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+                        {business.category}
+                      </span>
+                      {business.sub_category && (
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                          {business.sub_category}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -154,22 +162,35 @@ const BusinessDirectory = () => {
               </div>
 
               {/* Description */}
-              <p className="text-gray-600 mb-4">{business.description}</p>
+              {business.description && (
+                <p className="text-gray-600 mb-4">{business.description}</p>
+              )}
 
               {/* Contact Info */}
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="mr-2" size={16} />
-                  {business.address}
+                  <MapPin className="mr-2 shrink-0" size={16} />
+                  {business.address}{business.borough ? `, ${business.borough}` : ''}{business.zip ? ` ${business.zip}` : ''}
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="mr-2" size={16} />
-                  {business.phone}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="mr-2" size={16} />
-                  {business.email}
-                </div>
+                {business.phone && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Phone className="mr-2 shrink-0" size={16} />
+                    {business.phone}
+                  </div>
+                )}
+                {business.website && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Globe className="mr-2 shrink-0" size={16} />
+                    <a
+                      href={business.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 hover:underline truncate"
+                    >
+                      Visit Website
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Hours */}
@@ -183,15 +204,35 @@ const BusinessDirectory = () => {
 
               {/* Actions */}
               <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-200">
-                <a 
-                  href={`mailto:${business.email}`}
-                  className="btn-primary flex-1 text-sm text-center"
+                {business.website ? (
+                  <a
+                    href={business.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary flex-1 text-sm text-center"
+                  >
+                    Visit
+                  </a>
+                ) : business.email ? (
+                  <a
+                    href={`mailto:${business.email}`}
+                    className="btn-primary flex-1 text-sm text-center"
+                  >
+                    Contact
+                  </a>
+                ) : (
+                  <button className="btn-primary flex-1 text-sm" disabled>
+                    No Contact
+                  </button>
+                )}
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(`${business.address} ${business.borough ?? ''} ${business.zip ?? ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary text-sm"
                 >
-                  Contact
-                </a>
-                <button className="btn-secondary text-sm">
                   Directions
-                </button>
+                </a>
               </div>
             </div>
           ))}

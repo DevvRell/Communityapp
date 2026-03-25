@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Building2, Calendar, MessageSquare, ClipboardList, Image, Shield } from 'lucide-react'
+import { Home, Building2, Calendar, MessageSquare, ClipboardList, Image, Shield, Newspaper } from 'lucide-react'
 
 const Navbar = () => {
   const location = useLocation()
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
+    { path: '/daily-report', label: 'Daily Report', icon: Newspaper },
     { path: '/businesses', label: 'Businesses', icon: Building2 },
     { path: '/events', label: 'Events', icon: Calendar },
     { path: '/complaints', label: 'Complaints', icon: MessageSquare },
