@@ -11,13 +11,17 @@ export interface Business {
   id: number;
   name: string;
   category: string;
-  description: string;
+  description: string | null;
   address: string;
   phone: string;
-  email: string;
+  email: string | null;
   rating: number;
   reviews: number;
   hours: string | null;
+  website: string | null;
+  borough: string | null;
+  zip: string | null;
+  sub_category: string | null;
   createdAt: string;
   updatedAt: string;
 }
