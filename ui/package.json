@@ -4,7 +4,7 @@
   "description": "A community web application for The Competent Community",
   "main": "index.js",
   "scripts": {
-    "dev": "vite --port 3001",
+    "dev": "vite",
     "build": "vite build",
     "render:build": "npm ci && npm run build",
     "preview": "vite preview",

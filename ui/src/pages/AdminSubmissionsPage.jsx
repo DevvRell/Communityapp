@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Shield, Filter, CheckCircle, XCircle, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
-import { adminAPI } from '../services/api'
+import { adminAPI, ApiClientError } from '../services/api'
 
 const SUBMISSION_TYPES = [
   { value: 'all',       label: 'All types',   icon: Filter },
@@ -36,6 +37,7 @@ const getSubmissionDetail = (sub) => {
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { dateStyle: 'medium' }) : ''
 
 const AdminSubmissionsPage = () => {
+  const navigate = useNavigate()
   const [typeFilter, setTypeFilter]       = useState('all')
   const [statusFilter, setStatusFilter]   = useState('pending')
   const [submissions, setSubmissions]     = useState([])
@@ -43,6 +45,15 @@ const AdminSubmissionsPage = () => {
   const [error, setError]                 = useState(null)
   const [processingId, setProcessingId]   = useState(null)
   const [actionError, setActionError]     = useState(null)
+
+  const handleAuthError = useCallback((e) => {
+    if (e instanceof ApiClientError && (e.statusCode === 403 || e.statusCode === 401)) {
+      adminAPI.logout()
+      navigate('/admin/login', { replace: true })
+      return true
+    }
+    return false
+  }, [navigate])
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true)
@@ -54,11 +65,13 @@ const AdminSubmissionsPage = () => {
       )
       setSubmissions(res.submissions || [])
     } catch (e) {
-      setError(e.message || 'Failed to load submissions. Check your admin API key.')
+      if (!handleAuthError(e)) {
+        setError(e.message || 'Failed to load submissions.')
+      }
     } finally {
       setLoading(false)
     }
-  }, [typeFilter, statusFilter])
+  }, [typeFilter, statusFilter, handleAuthError])
 
   useEffect(() => {
     fetchSubmissions()
@@ -72,7 +85,9 @@ const AdminSubmissionsPage = () => {
       await adminAPI.approve(type, id)
       await fetchSubmissions()
     } catch (e) {
-      setActionError(`Failed to approve: ${e.message}`)
+      if (!handleAuthError(e)) {
+        setActionError(`Failed to approve: ${e.message}`)
+      }
     } finally {
       setProcessingId(null)
     }
@@ -86,7 +101,9 @@ const AdminSubmissionsPage = () => {
       await adminAPI.reject(type, id)
       await fetchSubmissions()
     } catch (e) {
-      setActionError(`Failed to reject: ${e.message}`)
+      if (!handleAuthError(e)) {
+        setActionError(`Failed to reject: ${e.message}`)
+      }
     } finally {
       setProcessingId(null)
     }
@@ -162,7 +179,7 @@ const AdminSubmissionsPage = () => {
             <AlertCircle className="mx-auto text-red-400 mb-3" size={48} />
             <p className="text-gray-700 font-medium mb-1">Could not load submissions</p>
             <p className="text-sm text-gray-500">{error}</p>
-            <p className="text-xs text-gray-400 mt-2">Make sure VITE_ADMIN_API_KEY is set in your .env file.</p>
+            <p className="text-xs text-gray-400 mt-2">Try logging out and back in, or check that the API is running.</p>
           </div>
         )}
 

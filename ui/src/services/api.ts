@@ -278,7 +278,11 @@ export const eventAPI = {
 // Admin API
 // ============================================================================
 
-const ADMIN_KEY = () => import.meta.env.VITE_ADMIN_API_KEY || '';
+function getAdminHeaders(): Record<string, string> {
+  const token = localStorage.getItem('adminToken');
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
 
 export const adminAPI = {
   login: async (password: string): Promise<{ token: string }> => {
@@ -288,27 +292,49 @@ export const adminAPI = {
     });
   },
 
+  logout: () => {
+    localStorage.removeItem('adminToken');
+  },
+
+  isLoggedIn: (): boolean => {
+    return !!localStorage.getItem('adminToken');
+  },
+
+  validate: async (): Promise<boolean> => {
+    try {
+      await apiRequest('/api/admin/submissions?status=pending', {
+        headers: getAdminHeaders(),
+      });
+      return true;
+    } catch (e) {
+      if (e instanceof ApiClientError && (e.statusCode === 403 || e.statusCode === 401)) {
+        return false;
+      }
+      return true;
+    }
+  },
+
   getSubmissions: async (type?: string, status?: string): Promise<{ submissions: any[] }> => {
     const query = buildQueryString({
       type: type && type !== 'all' ? type : undefined,
       status: status || 'pending',
     });
     return apiRequest(`/api/admin/submissions${query}`, {
-      headers: { 'X-Admin-Key': ADMIN_KEY() },
+      headers: getAdminHeaders(),
     });
   },
 
   approve: async (type: string, id: number): Promise<any> => {
     return apiRequest(`/api/admin/submissions/${type}/${id}/approve`, {
       method: 'POST',
-      headers: { 'X-Admin-Key': ADMIN_KEY() },
+      headers: getAdminHeaders(),
     });
   },
 
   reject: async (type: string, id: number): Promise<any> => {
     return apiRequest(`/api/admin/submissions/${type}/${id}/reject`, {
       method: 'POST',
-      headers: { 'X-Admin-Key': ADMIN_KEY() },
+      headers: getAdminHeaders(),
     });
   },
 };

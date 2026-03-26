@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, Loader2 } from 'lucide-react'
 import { adminAPI } from '../services/api'
@@ -8,6 +8,12 @@ const AdminLoginPage = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (adminAPI.isLoggedIn()) {
+      navigate('/admin/submissions', { replace: true })
+    }
+  }, [navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

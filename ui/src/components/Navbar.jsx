@@ -1,12 +1,20 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Home, Building2, Calendar, MessageSquare, ClipboardList, Image, Shield, Newspaper, Menu, X } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Home, Building2, Calendar, MessageSquare, ClipboardList, Image, Shield, Newspaper, Menu, X, LogOut, LogIn } from 'lucide-react'
+import { adminAPI } from '../services/api'
 
 const Navbar = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const isAdmin = !!localStorage.getItem('adminToken')
+  const isAdmin = adminAPI.isLoggedIn()
+
+  const handleLogout = () => {
+    adminAPI.logout()
+    setMobileOpen(false)
+    navigate('/')
+  }
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
@@ -53,6 +61,27 @@ const Navbar = () => {
                 </Link>
               )
             })}
+            {isAdmin ? (
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link
+                to="/admin/login"
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  location.pathname === '/admin/login'
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                }`}
+              >
+                <LogIn size={18} />
+                <span>Admin Login</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile hamburger button */}
@@ -92,6 +121,28 @@ const Navbar = () => {
                 </Link>
               )
             })}
+            {isAdmin ? (
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-3 px-3 py-3 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200 w-full"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link
+                to="/admin/login"
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center space-x-3 px-3 py-3 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  location.pathname === '/admin/login'
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                }`}
+              >
+                <LogIn size={18} />
+                <span>Admin Login</span>
+              </Link>
+            )}
           </div>
         </div>
       )}
