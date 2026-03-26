@@ -231,6 +231,60 @@ router.post('/submissions/:type/:id/approve', async (req: Request, res: Response
 });
 
 /**
+ * DELETE /api/admin/submissions/:type/:id
+ * Permanently remove an approved (or any) submission.
+ * Photos are also deleted from Cloudinary.
+ */
+router.delete('/submissions/:type/:id', async (req: Request, res: Response) => {
+  try {
+    const type = req.params.type as SubmissionType;
+    const id = parseInt(req.params.id, 10);
+    if (!['photo', 'business', 'complaint', 'event', 'committeeNote'].includes(type) || Number.isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid type or id.' });
+    }
+
+    if (type === 'photo') {
+      const photo = await prisma.photo.findUnique({ where: { id } });
+      if (!photo) return res.status(404).json({ error: 'Photo not found.' });
+      if (photo.storedPath) {
+        await deleteFromCloudinary(photo.storedPath).catch(() => {});
+      }
+      await prisma.photo.delete({ where: { id } });
+      return res.json({ message: 'Photo deleted.', type, id });
+    }
+    if (type === 'business') {
+      const record = await prisma.business.findUnique({ where: { id } });
+      if (!record) return res.status(404).json({ error: 'Business not found.' });
+      await prisma.business.delete({ where: { id } });
+      return res.json({ message: 'Business deleted.', type, id });
+    }
+    if (type === 'complaint') {
+      const record = await prisma.complaint.findUnique({ where: { id } });
+      if (!record) return res.status(404).json({ error: 'Complaint not found.' });
+      await prisma.complaint.delete({ where: { id } });
+      return res.json({ message: 'Complaint deleted.', type, id });
+    }
+    if (type === 'event') {
+      const record = await prisma.event.findUnique({ where: { id } });
+      if (!record) return res.status(404).json({ error: 'Event not found.' });
+      await prisma.event.delete({ where: { id } });
+      return res.json({ message: 'Event deleted.', type, id });
+    }
+    if (type === 'committeeNote') {
+      const record = await prisma.committeeNote.findUnique({ where: { id } });
+      if (!record) return res.status(404).json({ error: 'Committee note not found.' });
+      await prisma.committeeNote.delete({ where: { id } });
+      return res.json({ message: 'Committee note deleted.', type, id });
+    }
+
+    return res.status(400).json({ error: 'Unknown type.' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to delete submission.' });
+  }
+});
+
+/**
  * POST /api/admin/submissions/:type/:id/reject
  */
 router.post('/submissions/:type/:id/reject', async (req: Request, res: Response) => {

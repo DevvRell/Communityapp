@@ -337,6 +337,13 @@ export const adminAPI = {
       headers: getAdminHeaders(),
     });
   },
+
+  remove: async (type: string, id: number): Promise<any> => {
+    return apiRequest(`/api/admin/submissions/${type}/${id}`, {
+      method: 'DELETE',
+      headers: getAdminHeaders(),
+    });
+  },
 };
 
 // ============================================================================

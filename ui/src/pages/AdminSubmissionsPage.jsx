@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Filter, CheckCircle, XCircle, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
+import { Shield, Filter, CheckCircle, XCircle, Trash2, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2, Search } from 'lucide-react'
 import { adminAPI, ApiClientError } from '../services/api'
 import { useToast } from '../components/Toast'
 
@@ -41,12 +41,14 @@ const AdminSubmissionsPage = () => {
   const navigate = useNavigate()
   const toast = useToast()
   const [typeFilter, setTypeFilter]       = useState('all')
-  const [statusFilter, setStatusFilter]   = useState('pending')
+  const [statusFilter, setStatusFilter]   = useState('approved')
   const [submissions, setSubmissions]     = useState([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState(null)
   const [processingId, setProcessingId]   = useState(null)
   const [actionError, setActionError]     = useState(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const handleAuthError = useCallback((e) => {
     if (e instanceof ApiClientError && (e.statusCode === 403 || e.statusCode === 401)) {
@@ -113,6 +115,39 @@ const AdminSubmissionsPage = () => {
     }
   }
 
+  const handleRemove = async (type, id) => {
+    const key = `${type}-${id}`
+    setProcessingId(key)
+    setActionError(null)
+    try {
+      await adminAPI.remove(type, id)
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} #${id} permanently removed.`)
+      setConfirmingDelete(null)
+      await fetchSubmissions()
+    } catch (e) {
+      if (!handleAuthError(e)) {
+        toast.error(`Failed to remove: ${e.message}`)
+      }
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const filteredSubmissions = useMemo(() => {
+    if (!searchQuery.trim()) return submissions
+    const q = searchQuery.toLowerCase()
+    return submissions.filter((sub) => {
+      const d = sub.data
+      const fields = [
+        d.name, d.title, d.category, d.sub_category,
+        d.description, d.submittedBy, d.originalName,
+        d.organizer, d.location, d.address, d.borough,
+        d.committeeName, d.chairperson,
+      ]
+      return fields.some((f) => f && String(f).toLowerCase().includes(q))
+    })
+  }, [submissions, searchQuery])
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -165,8 +200,18 @@ const AdminSubmissionsPage = () => {
           >
             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
-          <span className="text-sm text-gray-500 ml-auto">
-            {loading ? 'Loading...' : `${submissions.length} result${submissions.length !== 1 ? 's' : ''}`}
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Search size={18} className="text-gray-400 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, title, category..."
+              className="input-field w-full py-2"
+            />
+          </div>
+          <span className="text-sm text-gray-500">
+            {loading ? 'Loading...' : `${filteredSubmissions.length} result${filteredSubmissions.length !== 1 ? 's' : ''}`}
           </span>
         </div>
 
@@ -188,20 +233,22 @@ const AdminSubmissionsPage = () => {
         )}
 
         {/* Empty state */}
-        {!loading && !error && submissions.length === 0 && (
+        {!loading && !error && filteredSubmissions.length === 0 && (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <CheckCircle className="mx-auto text-gray-300 mb-3" size={48} />
-            <p className="text-gray-500 font-medium">No submissions match the current filters.</p>
+            <p className="text-gray-500 font-medium">
+              {searchQuery.trim() ? 'No results match your search.' : 'No submissions match the current filters.'}
+            </p>
             <p className="text-sm text-gray-400 mt-1">
-              {statusFilter === 'pending' ? 'All caught up! No pending submissions.' : 'Try changing the filters above.'}
+              {searchQuery.trim() ? 'Try a different search term or change the filters.' : statusFilter === 'pending' ? 'All caught up! No pending submissions.' : 'Try changing the filters above.'}
             </p>
           </div>
         )}
 
         {/* Submissions list */}
-        {!loading && !error && submissions.length > 0 && (
+        {!loading && !error && filteredSubmissions.length > 0 && (
           <div className="space-y-4">
-            {submissions.map((sub) => {
+            {filteredSubmissions.map((sub) => {
               const TypeIcon = SUBMISSION_TYPES.find(t => t.value === sub.type)?.icon || Filter
               const isPending = sub.submissionStatus === 'PENDING'
               const key = `${sub.type}-${sub.id}`
@@ -239,32 +286,57 @@ const AdminSubmissionsPage = () => {
                     </div>
                   </div>
 
-                  {isPending && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleApprove(sub.type, sub.id)}
-                        disabled={isProcessing}
-                        className="btn-primary flex items-center gap-1 text-sm disabled:opacity-50"
-                      >
-                        {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={16} />}
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(sub.type, sub.id)}
-                        disabled={isProcessing}
-                        className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={16} />}
-                        Reject
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isPending && (
+                      <>
+                        <button
+                          onClick={() => handleApprove(sub.type, sub.id)}
+                          disabled={isProcessing}
+                          className="btn-primary flex items-center gap-1 text-sm disabled:opacity-50"
+                        >
+                          {isProcessing && confirmingDelete !== key ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={16} />}
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleReject(sub.type, sub.id)}
+                          disabled={isProcessing}
+                          className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {isProcessing && confirmingDelete !== key ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={16} />}
+                          Reject
+                        </button>
+                      </>
+                    )}
 
-                  {!isPending && (
-                    <div className="text-sm text-gray-400 italic shrink-0">
-                      {sub.submissionStatus === 'APPROVED' ? 'Approved' : 'Rejected'}
-                    </div>
-                  )}
+                    {confirmingDelete === key ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-red-600 font-medium">Delete permanently?</span>
+                        <button
+                          onClick={() => handleRemove(sub.type, sub.id)}
+                          disabled={isProcessing}
+                          className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded-lg flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          Yes, remove
+                        </button>
+                        <button
+                          onClick={() => setConfirmingDelete(null)}
+                          disabled={isProcessing}
+                          className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingDelete(key)}
+                        className="text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg px-3 py-1.5 flex items-center gap-1 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}

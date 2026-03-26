@@ -6,8 +6,8 @@ import type { Event } from '../types/api'
 // ── East New York coordinates ─────────────────────────────────────────────────
 const LAT = 40.6654
 const LON = -73.8875
-// ── YouTube: replace with your actual channel ID ──────────────────────────────
-const YOUTUBE_CHANNEL_ID = 'YOUR_CHANNEL_ID_HERE'
+// ── API base URL ───────────────────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 // ── MTA lines that serve East New York ───────────────────────────────────────
 const ENY_LINES = ['A', 'C', 'J', 'Z', 'L']
 
@@ -81,7 +81,19 @@ export default function TestHomePage() {
   const [mtaErr, setMtaErr]         = useState<string | null>(null)
   const [mtaLoading, setMtaLoading] = useState(true)
 
+  const [ytVideo, setYtVideo]       = useState<{ videoId: string; title: string; publishedAt: string } | null>(null)
+  const [ytLoading, setYtLoading]   = useState(true)
+  const [ytErr, setYtErr]           = useState<string | null>(null)
+
   const { data: upcomingEvents, loading: eventsLoading, error: eventsError } = useUpcomingEvents()
+
+  // ── YouTube fetch (latest video from CB5 ENY channel) ───────────────────
+  useEffect(() => {
+    fetch(`${API_BASE}/api/youtube/latest`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(data => { setYtVideo(data); setYtLoading(false) })
+      .catch(() => { setYtErr('Could not load latest video'); setYtLoading(false) })
+  }, [])
 
   // ── Weather fetch (Open-Meteo, no API key needed) ─────────────────────────
   useEffect(() => {
@@ -337,29 +349,47 @@ export default function TestHomePage() {
             <h2 className="text-lg font-semibold text-gray-900">Community Channel</h2>
           </div>
 
-          {YOUTUBE_CHANNEL_ID === 'YOUR_CHANNEL_ID_HERE' ? (
-            <div className="rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center py-16 text-center px-4">
-              <svg className="text-red-400 mb-3" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/>
-              </svg>
-              <p className="text-gray-600 font-medium mb-1">YouTube Channel Placeholder</p>
-              <p className="text-sm text-gray-400">
-                Replace <code className="bg-gray-100 px-1 rounded">YOUR_CHANNEL_ID_HERE</code> in{' '}
-                <code className="bg-gray-100 px-1 rounded">TestHomePage.tsx</code> with your YouTube channel ID.
-              </p>
+          {ytLoading && (
+            <div className="flex justify-center py-12">
+              <Loader2 className="animate-spin text-red-400" size={28} />
             </div>
-          ) : (
-            <div className="rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-              <iframe
-                title="Community YouTube Channel"
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed?listType=user_uploads&list=${YOUTUBE_CHANNEL_ID}&autoplay=0`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ border: 0 }}
-              />
+          )}
+
+          {ytErr && (
+            <div className="flex items-center gap-2 text-gray-500 text-sm py-4">
+              <AlertCircle size={16} />
+              {ytErr}
             </div>
+          )}
+
+          {!ytLoading && ytVideo && (
+            <>
+              <div className="rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                <iframe
+                  title={ytVideo.title}
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${ytVideo.videoId}?rel=0`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ border: 0 }}
+                />
+              </div>
+              <div className="mt-3">
+                <h3 className="font-medium text-gray-900 line-clamp-2">{ytVideo.title}</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Published {new Date(ytVideo.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+              <a
+                href="https://www.youtube.com/@cb5eny"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 mt-2"
+              >
+                View all videos on YouTube <ExternalLink size={11} />
+              </a>
+            </>
           )}
         </div>
 

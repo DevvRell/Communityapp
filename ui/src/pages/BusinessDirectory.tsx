@@ -172,7 +172,15 @@ const BusinessDirectory = () => {
               {/* Business Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                  {business.image || business.website ? (
+                    <img
+                      src={business.image || `https://www.google.com/s2/favicons?domain=${new URL(business.website!).hostname}&sz=64`}
+                      alt={business.name}
+                      className="w-12 h-12 rounded-lg object-cover bg-gray-100"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden') }}
+                    />
+                  ) : null}
+                  <div className={`w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center ${business.image || business.website ? 'hidden' : ''}`}>
                     <Building2 className="text-primary-600" size={20} />
                   </div>
                   <div>

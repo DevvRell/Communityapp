@@ -19,6 +19,7 @@ export interface Business {
   reviews: number;
   hours: string | null;
   website: string | null;
+  image: string | null;
   borough: string | null;
   zip: string | null;
   sub_category: string | null;

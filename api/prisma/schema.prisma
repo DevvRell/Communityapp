@@ -27,6 +27,7 @@ model Business {
   reviews           Int              @default(0)
   hours             String?
   website           String?
+  image             String?
   borough           String?
   zip               String?
   sub_category      String?
