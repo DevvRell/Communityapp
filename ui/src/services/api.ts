@@ -15,6 +15,7 @@ import type {
   CreateEventRequest,
   AttendEventRequest,
   HealthCheckResponse,
+  PaginatedResponse,
   BusinessQueryParams,
   ComplaintQueryParams,
   EventQueryParams,
@@ -121,12 +122,12 @@ function buildQueryString(params: Record<string, string | undefined>): string {
 
 export const businessAPI = {
   /**
-   * Get all businesses
-   * @param params Optional query parameters (category filter)
+   * Get all businesses (paginated)
+   * @param params Optional query parameters (category, page, limit)
    */
-  getAll: async (params?: BusinessQueryParams): Promise<Business[]> => {
+  getAll: async (params?: BusinessQueryParams): Promise<PaginatedResponse<Business>> => {
     const query = params ? buildQueryString(params as Record<string, string>) : '';
-    return apiRequest<Business[]>(`/api/businesses${query}`);
+    return apiRequest<PaginatedResponse<Business>>(`/api/businesses${query}`);
   },
 
   /**
@@ -137,10 +138,13 @@ export const businessAPI = {
   },
 
   /**
-   * Search businesses
+   * Search businesses (paginated)
    */
-  search: async (query: string): Promise<Business[]> => {
-    return apiRequest<Business[]>(`/api/businesses/search?q=${encodeURIComponent(query)}`);
+  search: async (query: string, page?: number, limit?: number): Promise<PaginatedResponse<Business>> => {
+    const params = new URLSearchParams({ q: query });
+    if (page) params.set('page', String(page));
+    if (limit) params.set('limit', String(limit));
+    return apiRequest<PaginatedResponse<Business>>(`/api/businesses/search?${params.toString()}`);
   },
 
   /**

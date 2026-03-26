@@ -162,6 +162,8 @@ export interface HealthCheckResponse {
 
 export interface BusinessQueryParams {
   category?: string;
+  page?: string;
+  limit?: string;
 }
 
 export interface ComplaintQueryParams {

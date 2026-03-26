@@ -81,17 +81,26 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { category } = req.query;
-    
+    const { category, page, limit } = req.query;
+
     const where: { category?: string; submissionStatus?: SubmissionStatus } =
       category && category !== 'all'
         ? { category: category as string, submissionStatus: SubmissionStatus.APPROVED }
         : { submissionStatus: SubmissionStatus.APPROVED };
 
-    const businesses = await prisma.business.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 12));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [businesses, total] = await Promise.all([
+      prisma.business.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+      prisma.business.count({ where }),
+    ]);
 
     // Convert Decimal to number for JSON response
     const formattedBusinesses = businesses.map(business => ({
@@ -99,7 +108,7 @@ router.get('/', async (req: Request, res: Response) => {
       rating: Number(business.rating),
     }));
 
-    res.json(formattedBusinesses);
+    res.json({ data: formattedBusinesses, total, page: pageNum, limit: limitNum });
   } catch (error) {
     console.error('Error fetching businesses:', error);
     res.status(500).json({ error: 'Failed to fetch businesses' });
@@ -131,31 +140,42 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.get('/search', async (req: Request, res: Response) => {
   try {
-    const { q } = req.query;
-    
+    const { q, page, limit } = req.query;
+
     if (!q || typeof q !== 'string') {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
-    const businesses = await prisma.business.findMany({
-      where: {
-        submissionStatus: SubmissionStatus.APPROVED,
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { description: { contains: q, mode: 'insensitive' } },
-          { address: { contains: q, mode: 'insensitive' } },
-          { sub_category: { contains: q, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 12));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {
+      submissionStatus: SubmissionStatus.APPROVED,
+      OR: [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { description: { contains: q, mode: 'insensitive' as const } },
+        { address: { contains: q, mode: 'insensitive' as const } },
+        { sub_category: { contains: q, mode: 'insensitive' as const } },
+      ],
+    };
+
+    const [businesses, total] = await Promise.all([
+      prisma.business.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+      prisma.business.count({ where }),
+    ]);
 
     const formattedBusinesses = businesses.map(business => ({
       ...business,
       rating: Number(business.rating),
     }));
 
-    res.json(formattedBusinesses);
+    res.json({ data: formattedBusinesses, total, page: pageNum, limit: limitNum });
   } catch (error) {
     console.error('Error searching businesses:', error);
     res.status(500).json({ error: 'Failed to search businesses' });

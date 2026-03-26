@@ -15,6 +15,7 @@ import type {
   UpdateBusinessRequest,
   UpdateComplaintStatusRequest,
   AddComplaintResponseRequest,
+  PaginatedResponse,
 } from '../types/api';
 
 // ============================================================================
@@ -125,10 +126,14 @@ function useMutation<TData, TVariables>(
 // Business Hooks
 // ============================================================================
 
-export function useBusinesses(category?: string) {
+export function useBusinesses(category?: string, page: number = 1, limit: number = 12) {
   return useApi(
-    () => businessAPI.getAll(category ? { category } : undefined),
-    [category]
+    () => businessAPI.getAll({
+      ...(category ? { category } : {}),
+      page: String(page),
+      limit: String(limit),
+    }),
+    [category, page, limit]
   );
 }
 
@@ -136,16 +141,15 @@ export function useBusiness(id: number) {
   return useApi(() => businessAPI.getById(id), [id]);
 }
 
-export function useSearchBusinesses(query: string) {
+export function useSearchBusinesses(query: string, page: number = 1, limit: number = 12) {
   return useApi(
     () => {
       if (!query || query.trim().length === 0) {
-        // Return empty array if no query, don't call API
-        return Promise.resolve([]);
+        return Promise.resolve({ data: [], total: 0, page: 1, limit } as PaginatedResponse<Business>);
       }
-      return businessAPI.search(query);
+      return businessAPI.search(query, page, limit);
     },
-    [query]
+    [query, page, limit]
   );
 }
 

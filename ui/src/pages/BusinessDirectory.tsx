@@ -1,22 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2, Plus, X, ImagePlus } from 'lucide-react'
+import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2, Plus, X, ImagePlus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useBusinesses, useSearchBusinesses, useCreateBusiness } from '../services/apiClient'
 import { useToast } from '../components/Toast'
 import { useDebounce } from '../hooks/useDebounce'
 import type { Business, CreateBusinessRequest } from '../types/api'
 
+const ITEMS_PER_PAGE = 12
+
 const BusinessDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
   const debouncedSearchTerm = useDebounce(searchTerm.trim(), 300)
-  const { data: businesses, loading, error, refetch } = useBusinesses(selectedCategory === 'all' ? undefined : selectedCategory)
+  const { data: paginatedBusinesses, loading, error, refetch } = useBusinesses(selectedCategory === 'all' ? undefined : selectedCategory, currentPage, ITEMS_PER_PAGE)
   const { mutate: createBusiness, loading: creating, error: createError } = useCreateBusiness()
   const hasSearchTerm = debouncedSearchTerm.length > 0
-  const { data: searchResults, loading: searchLoading } = useSearchBusinesses(debouncedSearchTerm)
+  const { data: paginatedSearch, loading: searchLoading } = useSearchBusinesses(debouncedSearchTerm, currentPage, ITEMS_PER_PAGE)
 
   // Auto-focus search input when user starts typing (if not already focused)
   useEffect(() => {
@@ -40,7 +43,10 @@ const BusinessDirectory = () => {
   ]
 
   // When searching, use search results; otherwise use category-filtered list from API
-  const displayedBusinesses: Business[] = hasSearchTerm ? (searchResults || []) : (businesses || [])
+  const activeResult = hasSearchTerm ? paginatedSearch : paginatedBusinesses
+  const displayedBusinesses: Business[] = activeResult?.data || []
+  const totalItems = activeResult?.total || 0
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
   if (loading && !hasSearchTerm) {
     return (
@@ -87,7 +93,7 @@ const BusinessDirectory = () => {
                 type="text"
                 placeholder="Search businesses..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
                 className={`input-field pl-10 ${searchTerm ? 'pr-10 border-primary-300 focus:border-primary-500 focus:ring-primary-500' : ''} transition-all duration-200`}
                 autoFocus={false}
               />
@@ -100,7 +106,8 @@ const BusinessDirectory = () => {
                 value={selectedCategory}
                 onChange={(e) => {
                   setSelectedCategory(e.target.value)
-                  setSearchTerm('') // Clear search when changing category
+                  setSearchTerm('')
+                  setCurrentPage(1)
                 }}
                 className="input-field pl-10"
               >
@@ -122,7 +129,7 @@ const BusinessDirectory = () => {
                   </span>
                 ) : (
                   <>
-                    {displayedBusinesses.length} business{displayedBusinesses.length !== 1 ? 'es' : ''} found
+                    {totalItems} business{totalItems !== 1 ? 'es' : ''} found
                     {hasSearchTerm && ` for "${searchTerm.trim()}"`}
                   </>
                 )}
@@ -276,6 +283,50 @@ const BusinessDirectory = () => {
             </div>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <button
+              onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+              .reduce<(number | string)[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((item, i) =>
+                typeof item === 'string' ? (
+                  <span key={`dots-${i}`} className="px-2 text-gray-400">...</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => { setCurrentPage(item); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                      currentPage === item
+                        ? 'bg-primary-600 text-white'
+                        : 'border border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+            <button
+              onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
 
         {/* Empty State */}
         {displayedBusinesses.length === 0 && (
