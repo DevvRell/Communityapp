@@ -1,7 +1,23 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
   "permissions": {
     "allow": [
-      "Bash(grep -E \"\\\\.\\(tsx|jsx|ts|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|jsx|ts|js\\)$\")",
+      "Bash(brew install:*)",
+      "WebSearch",
+      "WebFetch(domain:www.brooklyncb5.org)",
+      "WebFetch(domain:www.nysenate.gov)",
+      "WebFetch(domain:www.nyc.gov)",
+      "WebFetch(domain:www.nycuriosity.com)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/cb5_db\" npx prisma generate)",
+      "Bash(curl -s \"https://www.youtube.com/@cb5eny\")",
+      "Bash(curl -sL \"https://www.youtube.com/@cb5eny\")",
+      "Bash(docker exec:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/cb5_db\" npx prisma migrate resolve --applied 20260325010000_add_committee_notes)"
     ]
   }
 }

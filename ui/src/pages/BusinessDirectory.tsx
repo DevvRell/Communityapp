@@ -26,13 +26,13 @@ const BusinessDirectory = () => {
 
   const categories = [
     { value: 'all', label: 'All Categories' },
-    { value: 'Food', label: 'Food & Dining' },
+    { value: 'Food', label: 'Food' },
     { value: 'Retail', label: 'Retail' },
-    { value: 'Professional Services', label: 'Professional Services' },
-    { value: 'General Services', label: 'General Services' },
     { value: 'Non-Profit', label: 'Non-Profit' },
+    { value: 'General Services', label: 'General Services' },
+    { value: 'Professional Services', label: 'Professional Services' },
     { value: 'Family Services', label: 'Family Services' },
-    { value: 'Entertainment', label: 'Entertainment' },
+    { value: 'Entertainment', label: 'Entertainment' }
   ]
 
   // When searching, use search results; otherwise use category-filtered list from API
@@ -220,16 +220,12 @@ const BusinessDirectory = () => {
                   >
                     Contact
                   </a>
-                ) : (
-                  <button className="btn-primary flex-1 text-sm" disabled>
-                    No Contact
-                  </button>
-                )}
+                ) : null}
                 <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(`${business.address} ${business.borough ?? ''} ${business.zip ?? ''}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary text-sm"
+                  className="btn-secondary flex-1 text-sm text-center"
                 >
                   Directions
                 </a>

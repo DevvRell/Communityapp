@@ -1,6 +1,6 @@
 import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
-import { PENDING_DIR, sanitizeFilename, isAllowedMime, isAllowedExt } from '../utils/uploads';
+import { PENDING_DIR, sanitizeFilename, isAllowedMime, isAllowedExt, isAllowedDocMime, isAllowedDocExt } from '../utils/uploads';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -33,3 +33,21 @@ export const uploadPhoto = multer({
     cb(null, true);
   },
 }).single('photo');
+
+export const uploadDocuments = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (_req, file, cb: FileFilterCallback) => {
+    const mime = file.mimetype;
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (!isAllowedDocMime(mime)) {
+      cb(new Error(`Invalid file type. Allowed: images and PDF. Got: ${mime}`));
+      return;
+    }
+    if (!isAllowedDocExt(ext)) {
+      cb(new Error(`Invalid file extension. Allowed: .jpg, .jpeg, .png, .gif, .webp, .pdf. Got: ${ext}`));
+      return;
+    }
+    cb(null, true);
+  },
+}).array('attachments', 5);

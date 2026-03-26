@@ -1,8 +1,61 @@
 
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, Building2, Calendar, MessageSquare, ClipboardList, ArrowRight, Star } from 'lucide-react'
+import { Users, Building2, Calendar, MessageSquare, ClipboardList, ArrowRight, Star, Loader2 } from 'lucide-react'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const HomePage = () => {
+  const [stats, setStats] = useState(null)
+  const [featuredBusiness, setFeaturedBusiness] = useState(null)
+  const [upcomingEvent, setUpcomingEvent] = useState(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/stats`)
+        if (res.ok) {
+          const data = await res.json()
+          setStats(data)
+        }
+      } catch {
+        // use fallback
+      }
+    }
+
+    const fetchBusiness = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/businesses`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data && data.length > 0) {
+            setFeaturedBusiness(data[0])
+          }
+        }
+      } catch {
+        // use fallback
+      }
+    }
+
+    const fetchEvent = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/events/upcoming`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data && data.length > 0) {
+            setUpcomingEvent(data[0])
+          }
+        }
+      } catch {
+        // use fallback
+      }
+    }
+
+    fetchStats()
+    fetchBusiness()
+    fetchEvent()
+  }, [])
+
   const features = [
     {
       icon: Building2,
@@ -30,12 +83,28 @@ const HomePage = () => {
     }
   ]
 
-  const stats = [
-    { label: 'Local Businesses', value: '150+' },
-    { label: 'Community Events', value: '25+' },
-    { label: 'Active Members', value: '2,500+' },
-    { label: 'Issues Resolved', value: '95%' }
-  ]
+  const statItems = stats
+    ? [
+        { label: 'Local Businesses', value: stats.businesses },
+        { label: 'Upcoming Events', value: stats.upcomingEvents },
+        { label: 'Complaints Filed', value: stats.complaints },
+        { label: 'Issues Resolved', value: stats.resolvedComplaints }
+      ]
+    : [
+        { label: 'Local Businesses', value: '150+' },
+        { label: 'Community Events', value: '25+' },
+        { label: 'Active Members', value: '2,500+' },
+        { label: 'Issues Resolved', value: '95%' }
+      ]
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
 
   return (
     <div className="min-h-screen">
@@ -47,7 +116,7 @@ const HomePage = () => {
               The Competent Community
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Connecting our community through local businesses, events, and open communication. 
+              Connecting our community through local businesses, events, and open communication.
               Together we build a stronger, more united neighborhood.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -66,7 +135,7 @@ const HomePage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
+            {statItems.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-primary-600 mb-2">
                   {stat.value}
@@ -89,7 +158,7 @@ const HomePage = () => {
               Our platform provides everything you need to stay connected with your community
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon
@@ -104,7 +173,7 @@ const HomePage = () => {
                   <p className="text-gray-600 mb-4">
                     {feature.description}
                   </p>
-                  <Link 
+                  <Link
                     to={feature.link}
                     className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
                   >
@@ -128,7 +197,7 @@ const HomePage = () => {
               See what's happening in our neighborhood
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Featured Business */}
             <div className="card">
@@ -137,15 +206,23 @@ const HomePage = () => {
                   <Building2 className="text-primary-600" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Joe's Coffee Shop</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    {featuredBusiness ? featuredBusiness.name : "Joe's Coffee Shop"}
+                  </h3>
                   <div className="flex items-center text-sm text-gray-600">
                     <Star className="text-yellow-400" size={14} />
-                    <span className="ml-1">4.8 (120 reviews)</span>
+                    <span className="ml-1">
+                      {featuredBusiness
+                        ? `${Number(featuredBusiness.rating).toFixed(1)} (${featuredBusiness.reviews} reviews)`
+                        : '4.8 (120 reviews)'}
+                    </span>
                   </div>
                 </div>
               </div>
               <p className="text-gray-600 mb-4">
-                Local coffee shop serving the community with fresh brews and friendly service.
+                {featuredBusiness
+                  ? (featuredBusiness.description || `Local ${featuredBusiness.category.toLowerCase()} business serving the East New York community.`)
+                  : 'Local coffee shop serving the community with fresh brews and friendly service.'}
               </p>
               <Link to="/businesses" className="text-primary-600 hover:text-primary-700 font-medium">
                 Visit Business →
@@ -159,12 +236,20 @@ const HomePage = () => {
                   <Calendar className="text-secondary-600" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Community Cleanup</h3>
-                  <p className="text-sm text-gray-600">This Saturday, 9 AM</p>
+                  <h3 className="font-semibold text-gray-900">
+                    {upcomingEvent ? upcomingEvent.title : 'Community Cleanup'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {upcomingEvent
+                      ? `${formatDate(upcomingEvent.date)}, ${upcomingEvent.time}`
+                      : 'This Saturday, 9 AM'}
+                  </p>
                 </div>
               </div>
               <p className="text-gray-600 mb-4">
-                Join us for our monthly community cleanup event. Let's keep our neighborhood beautiful!
+                {upcomingEvent
+                  ? upcomingEvent.description
+                  : "Join us for our monthly community cleanup event. Let's keep our neighborhood beautiful!"}
               </p>
               <Link to="/events" className="text-primary-600 hover:text-primary-700 font-medium">
                 View Event →
@@ -178,12 +263,12 @@ const HomePage = () => {
                   <MessageSquare className="text-green-600" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Street Light Fixed</h3>
-                  <p className="text-sm text-gray-600">Resolved in 2 days</p>
+                  <h3 className="font-semibold text-gray-900">Community Voice</h3>
+                  <p className="text-sm text-gray-600">Report neighborhood issues</p>
                 </div>
               </div>
               <p className="text-gray-600 mb-4">
-                The broken street light on Oak Street has been repaired thanks to community reporting.
+                Help keep our community safe and well-maintained by reporting issues to your local board.
               </p>
               <Link to="/complaints" className="text-primary-600 hover:text-primary-700 font-medium">
                 Report Issue →
@@ -196,4 +281,4 @@ const HomePage = () => {
   )
 }
 
-export default HomePage 
+export default HomePage

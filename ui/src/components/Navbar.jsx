@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Building2, Calendar, MessageSquare, ClipboardList, Image, Shield, Newspaper } from 'lucide-react'
+import { Home, Building2, Calendar, MessageSquare, ClipboardList, Image, Shield, Menu, X } from 'lucide-react'
 
 const Navbar = () => {
   const location = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const isAdmin = !!localStorage.getItem('adminToken')
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
@@ -12,7 +16,7 @@ const Navbar = () => {
     { path: '/complaints', label: 'Complaints', icon: MessageSquare },
     { path: '/committee-updates', label: 'Committee Updates', icon: ClipboardList },
     { path: '/gallery', label: 'Gallery', icon: Image },
-    { path: '/admin/submissions', label: 'Admin', icon: Shield },
+    ...(isAdmin ? [{ path: '/admin/submissions', label: 'Admin', icon: Shield }] : []),
   ]
 
   return (
@@ -27,12 +31,13 @@ const Navbar = () => {
               <span className="text-xl font-bold text-gray-900">The Competent Community</span>
             </Link>
           </div>
-          
-          <div className="flex items-center space-x-8">
+
+          {/* Desktop nav */}
+          <div className="hidden lg:flex items-center space-x-8">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.path
-              
+
               return (
                 <Link
                   key={item.path}
@@ -49,10 +54,49 @@ const Navbar = () => {
               )
             })}
           </div>
+
+          {/* Mobile hamburger button */}
+          <div className="flex items-center lg:hidden">
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="text-gray-600 hover:text-primary-600 focus:outline-none p-2 rounded-md"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="lg:hidden border-t border-gray-200 bg-white">
+          <div className="px-4 py-3 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = location.pathname === item.path
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    isActive
+                      ? 'text-primary-600 bg-primary-50'
+                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
 
-export default Navbar 
+export default Navbar

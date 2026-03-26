@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -136,6 +137,8 @@ router.get('/search', async (req: Request, res: Response) => {
         OR: [
           { name: { contains: q, mode: 'insensitive' } },
           { description: { contains: q, mode: 'insensitive' } },
+          { address: { contains: q, mode: 'insensitive' } },
+          { sub_category: { contains: q, mode: 'insensitive' } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -245,10 +248,10 @@ router.get('/:id', async (req: Request, res: Response) => {
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, category, description, address, phone, email, rating, reviews, hours } = req.body;
+    const { name, category, description, address, phone, email, rating, reviews, hours, website, borough, zip, sub_category } = req.body;
 
-    if (!name || !category || !description || !address || !phone || !email) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!name || !category || !address || !phone) {
+      return res.status(400).json({ error: 'Missing required fields: name, category, address, phone' });
     }
 
     // Be lenient with rating - just ensure it's a valid number between 0-5, default to 0 if invalid
@@ -269,13 +272,17 @@ router.post('/', async (req: Request, res: Response) => {
       data: {
         name,
         category,
-        description,
+        description: description || null,
         address,
         phone,
-        email,
+        email: email || null,
         rating: ratingValue,
         reviews: reviews ? parseInt(reviews) || 0 : 0,
-        hours: hours || '',
+        hours: hours || null,
+        website: website || null,
+        borough: borough || null,
+        zip: zip || null,
+        sub_category: sub_category || null,
       },
     });
 
@@ -336,19 +343,19 @@ router.post('/', async (req: Request, res: Response) => {
  *       404:
  *         description: Business not found
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, category, description, address, phone, email, rating, reviews, hours } = req.body;
+    const { name, category, description, address, phone, email, rating, reviews, hours, website, borough, zip, sub_category } = req.body;
 
     // Validate and clamp rating to 0-5 range if provided
     let updateData: any = {};
     if (name) updateData.name = name;
     if (category) updateData.category = category;
-    if (description) updateData.description = description;
+    if (description !== undefined) updateData.description = description || null;
     if (address) updateData.address = address;
     if (phone) updateData.phone = phone;
-    if (email) updateData.email = email;
+    if (email !== undefined) updateData.email = email || null;
     if (rating !== undefined) {
       let ratingValue = parseFloat(rating);
       if (ratingValue < 0) ratingValue = 0;
@@ -356,7 +363,11 @@ router.put('/:id', async (req: Request, res: Response) => {
       updateData.rating = ratingValue;
     }
     if (reviews !== undefined) updateData.reviews = parseInt(reviews);
-    if (hours !== undefined) updateData.hours = hours;
+    if (hours !== undefined) updateData.hours = hours || null;
+    if (website !== undefined) updateData.website = website || null;
+    if (borough !== undefined) updateData.borough = borough || null;
+    if (zip !== undefined) updateData.zip = zip || null;
+    if (sub_category !== undefined) updateData.sub_category = sub_category || null;
 
     const business = await prisma.business.update({
       where: { id },
@@ -394,7 +405,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  *       404:
  *         description: Business not found
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { ComplaintStatus, ComplaintPriority, SubmissionStatus } from '@prisma/client';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -278,7 +279,7 @@ router.post('/', async (req: Request, res: Response) => {
  *       404:
  *         description: Complaint not found
  */
-router.patch('/:id/status', async (req: Request, res: Response) => {
+router.patch('/:id/status', requireAdmin, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;
@@ -346,7 +347,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
  *       404:
  *         description: Complaint not found
  */
-router.post('/:id/response', async (req: Request, res: Response) => {
+router.post('/:id/response', requireAdmin, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const { response } = req.body;

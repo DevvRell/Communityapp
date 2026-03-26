@@ -10,7 +10,7 @@ const router = Router();
 
 router.use(requireAdmin);
 
-type SubmissionType = 'photo' | 'business' | 'complaint' | 'event';
+type SubmissionType = 'photo' | 'business' | 'complaint' | 'event' | 'committeeNote';
 
 /**
  * GET /api/admin/submissions
@@ -83,6 +83,20 @@ router.get('/submissions', async (req: Request, res: Response) => {
           id: e.id,
           data: e,
           submissionStatus: e.submissionStatus,
+        });
+      });
+    }
+    if (!type || type === 'committeeNote') {
+      const notes = await prisma.committeeNote.findMany({
+        where: { submissionStatus: statusEnum },
+        orderBy: { createdAt: 'desc' },
+      });
+      notes.forEach((n) => {
+        result.push({
+          type: 'committeeNote',
+          id: n.id,
+          data: { ...n, meetingDate: n.meetingDate.toISOString().split('T')[0] },
+          submissionStatus: n.submissionStatus,
         });
       });
     }
@@ -170,6 +184,10 @@ async function setSubmissionStatus(
     await prisma.event.update({ where: { id }, data: { submissionStatus: status } });
     return true;
   }
+  if (type === 'committeeNote') {
+    await prisma.committeeNote.update({ where: { id }, data: { submissionStatus: status } });
+    return true;
+  }
   return false;
 }
 
@@ -180,7 +198,7 @@ router.post('/submissions/:type/:id/approve', async (req: Request, res: Response
   try {
     const type = req.params.type as SubmissionType;
     const id = parseInt(req.params.id, 10);
-    if (!['photo', 'business', 'complaint', 'event'].includes(type) || Number.isNaN(id)) {
+    if (!['photo', 'business', 'complaint', 'event', 'committeeNote'].includes(type) || Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid type or id.' });
     }
     if (type === 'photo') {
@@ -215,7 +233,7 @@ router.post('/submissions/:type/:id/reject', async (req: Request, res: Response)
   try {
     const type = req.params.type as SubmissionType;
     const id = parseInt(req.params.id, 10);
-    if (!['photo', 'business', 'complaint', 'event'].includes(type) || Number.isNaN(id)) {
+    if (!['photo', 'business', 'complaint', 'event', 'committeeNote'].includes(type) || Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid type or id.' });
     }
     if (type === 'photo') {

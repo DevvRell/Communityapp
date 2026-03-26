@@ -6,6 +6,7 @@ export const PENDING_DIR = path.join(UPLOADS_ROOT, 'pending');
 export const APPROVED_DIR = path.join(UPLOADS_ROOT, 'approved');
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+const ALLOWED_DOC_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf']);
 const MAX_FILENAME_LENGTH = 200;
 
 /**
@@ -45,4 +46,20 @@ export function isAllowedMime(mime: string): boolean {
 
 export function isAllowedExt(ext: string): boolean {
   return ALLOWED_EXTENSIONS.has(ext.toLowerCase());
+}
+
+export const ALLOWED_DOC_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+]);
+
+export function isAllowedDocMime(mime: string): boolean {
+  return ALLOWED_DOC_MIME_TYPES.has(mime);
+}
+
+export function isAllowedDocExt(ext: string): boolean {
+  return ALLOWED_DOC_EXTENSIONS.has(ext.toLowerCase());
 }
