@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { ToastProvider } from './components/Toast'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -16,6 +17,7 @@ import CommitteeNotesSubmitPage from './pages/CommitteeNotesSubmitPage'
 function App() {
   return (
     <Router>
+      <ToastProvider>
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">
@@ -38,6 +40,7 @@ function App() {
         </main>
         <Footer />
       </div>
+      </ToastProvider>
     </Router>
   )
 }

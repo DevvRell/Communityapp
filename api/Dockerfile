@@ -50,6 +50,9 @@ COPY --from=builder /app/dist ./dist
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
+# Create upload directories before switching user
+RUN mkdir -p /app/uploads/pending /app/uploads/approved
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \

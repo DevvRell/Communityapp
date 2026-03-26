@@ -30,6 +30,10 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cb5_db
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-admin123}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,6 +47,8 @@ services:
       # Mount Prisma files for migrations (optional, for development)
       - ./prisma:/app/prisma:ro
       - ./prisma.config.ts:/app/prisma.config.ts:ro
+      # Persist uploaded photos across container rebuilds
+      - uploads_data:/app/uploads
 
   app-dev:
     build:
@@ -60,6 +66,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cb5_db
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-admin123}
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,3 +99,4 @@ services:
 volumes:
   postgres_data:
   node_modules_dev:
+  uploads_data:

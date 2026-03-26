@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2 } from 'lucide-react'
-import { useBusinesses, useSearchBusinesses } from '../services/apiClient'
+import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2, Plus, X } from 'lucide-react'
+import { useBusinesses, useSearchBusinesses, useCreateBusiness } from '../services/apiClient'
+import { useToast } from '../components/Toast'
 import { useDebounce } from '../hooks/useDebounce'
-import type { Business } from '../types/api'
+import type { Business, CreateBusinessRequest } from '../types/api'
 
 const BusinessDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showAddForm, setShowAddForm] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
 
   const debouncedSearchTerm = useDebounce(searchTerm.trim(), 300)
-  const { data: businesses, loading, error } = useBusinesses(selectedCategory === 'all' ? undefined : selectedCategory)
+  const { data: businesses, loading, error, refetch } = useBusinesses(selectedCategory === 'all' ? undefined : selectedCategory)
+  const { mutate: createBusiness, loading: creating, error: createError } = useCreateBusiness()
   const hasSearchTerm = debouncedSearchTerm.length > 0
   const { data: searchResults, loading: searchLoading } = useSearchBusinesses(debouncedSearchTerm)
 
@@ -69,9 +73,9 @@ const BusinessDirectory = () => {
           </p>
         </div>
 
-        {/* Search and Filter */}
+        {/* Search, Filter & Add */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${searchTerm ? 'text-primary-600' : 'text-gray-400'} transition-colors duration-200`} size={20} />
@@ -124,8 +128,39 @@ const BusinessDirectory = () => {
                 )}
               </span>
             </div>
+
+            {/* Add Business Button */}
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-primary flex items-center justify-center space-x-2"
+            >
+              <Plus size={16} />
+              <span>Add Business</span>
+            </button>
           </div>
         </div>
+
+        {/* Add Business Form */}
+        {showAddForm && (
+          <AddBusinessForm
+            onSubmit={async (data) => {
+              try {
+                const result = await createBusiness(data)
+                if (result) {
+                  setShowAddForm(false)
+                  refetch()
+                  toast.success('Business submitted successfully! It will appear after admin approval.')
+                }
+              } catch {
+                toast.error('Failed to add business. Please try again.')
+              }
+            }}
+            onCancel={() => setShowAddForm(false)}
+            loading={creating}
+            error={createError}
+            categories={categories.filter(c => c.value !== 'all')}
+          />
+        )}
 
         {/* Business Listings */}
         <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-300 ${hasSearchTerm && searchLoading ? 'opacity-75' : 'opacity-100'}`}>
@@ -245,6 +280,166 @@ const BusinessDirectory = () => {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Add Business Form Component
+// ============================================================================
+
+interface AddBusinessFormProps {
+  onSubmit: (data: CreateBusinessRequest) => Promise<void>
+  onCancel: () => void
+  loading: boolean
+  error: string | null
+  categories: { value: string; label: string }[]
+}
+
+const AddBusinessForm = ({ onSubmit, onCancel, loading, error, categories }: AddBusinessFormProps) => {
+  const [formData, setFormData] = useState<CreateBusinessRequest>({
+    name: '',
+    category: '',
+    description: '',
+    address: '',
+    phone: '',
+    email: '',
+    hours: '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await onSubmit(formData)
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">Add New Business</h2>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+          <X size={20} />
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Business Name *</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="e.g. Joe's Coffee Shop"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+          <select name="category" value={formData.category} onChange={handleChange} required className="input-field">
+            <option value="">Select a category</option>
+            {categories.map(c => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            required
+            className="input-field"
+            rows={3}
+            placeholder="Briefly describe the business..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="123 Main St"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+          <input
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="(555) 123-4567"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="contact@business.com"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hours (optional)</label>
+          <input
+            type="text"
+            name="hours"
+            value={formData.hours}
+            onChange={handleChange}
+            className="input-field"
+            placeholder="Mon-Fri 9am-5pm"
+          />
+        </div>
+
+        <div className="md:col-span-2 flex items-center gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex items-center justify-center space-x-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={16} />
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <span>Submit Business</span>
+            )}
+          </button>
+          <button type="button" onClick={onCancel} className="btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

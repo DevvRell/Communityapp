@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
-import path from 'path';
 import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { optionalUser, requireAuth } from '../middleware/auth';
 import { uploadPhoto } from '../middleware/upload';
+import { uploadToCloudinary } from '../utils/cloudinary';
+import { sanitizeFilename } from '../utils/uploads';
 import rateLimit from 'express-rate-limit';
 
 export type RequestWithUser = Request & { userId?: string; file?: Express.Multer.File };
@@ -21,7 +22,7 @@ const uploadLimiter = rateLimit({
 
 /**
  * POST /api/photos/upload
- * User uploads a photo. Stored in pending/ until admin approves.
+ * Upload a photo to Cloudinary. Stored as PENDING until admin approves.
  */
 router.post(
   '/upload',
@@ -42,21 +43,26 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const file = (req as RequestWithUser).file;
-      if (!file) {
+      if (!file || !file.buffer) {
         return res.status(400).json({ error: 'No file uploaded. Use field name "photo".' });
       }
+
       const userId = (req as RequestWithUser).userId ?? undefined;
-      const storedPath = path.join('pending', path.basename(file.filename));
+      const safeName = sanitizeFilename(file.originalname || 'upload');
+      const { url, publicId } = await uploadToCloudinary(file.buffer, safeName);
+
       const photo = await prisma.photo.create({
         data: {
           submittedBy: userId,
-          storedPath,
+          storedPath: publicId,
           mimeType: file.mimetype,
           originalName: file.originalname,
           fileSize: file.size,
           submissionStatus: SubmissionStatus.PENDING,
+          url,
         },
       });
+
       res.status(201).json({
         id: photo.id,
         message: 'Photo submitted for review.',
@@ -64,14 +70,14 @@ router.post(
       });
     } catch (e) {
       console.error(e);
-      res.status(500).json({ error: 'Failed to save photo record.' });
+      res.status(500).json({ error: 'Failed to upload photo.' });
     }
   }
 );
 
 /**
  * GET /api/photos
- * Public gallery: approved photos only. Returns list with URLs to /uploads/approved/...
+ * Public gallery: approved photos only.
  */
 router.get('/', async (_req: Request, res: Response) => {
   try {
@@ -79,11 +85,11 @@ router.get('/', async (_req: Request, res: Response) => {
       where: { submissionStatus: SubmissionStatus.APPROVED },
       orderBy: { createdAt: 'desc' },
     });
-    const baseUrl = process.env.STAGING_URL || process.env.RENDER_EXTERNAL_URL || '';
     const list = photos.map((p) => ({
       id: p.id,
-      url: `${baseUrl}/uploads/approved/${path.basename(p.storedPath)}`,
+      url: p.url || '',
       originalName: p.originalName,
+      submittedBy: p.submittedBy,
       createdAt: p.createdAt,
     }));
     res.json(list);

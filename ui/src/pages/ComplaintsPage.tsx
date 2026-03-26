@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MessageSquare, AlertCircle, CheckCircle, Clock, MapPin, Plus, Filter, Loader2 } from 'lucide-react'
 import { useComplaints, useCreateComplaint } from '../services/apiClient'
+import { useToast } from '../components/Toast'
 import type { CreateComplaintRequest } from '../types/api'
 
 const ComplaintsPage = () => {
@@ -15,6 +16,8 @@ const ComplaintsPage = () => {
     priority: 'medium',
     status: 'pending'
   })
+
+  const toast = useToast()
 
   const { data: complaints, loading, error, refetch } = useComplaints(
     selectedStatus === 'all' ? undefined : selectedStatus
@@ -50,19 +53,24 @@ const ComplaintsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = await createComplaint(formData)
-    if (result) {
-      await refetch()
-      setShowForm(false)
-      setFormData({
-        title: '',
-        description: '',
-        category: '',
-        location: '',
-        submittedBy: '',
-        priority: 'medium',
-        status: 'pending'
-      })
+    try {
+      const result = await createComplaint(formData)
+      if (result) {
+        await refetch()
+        setShowForm(false)
+        setFormData({
+          title: '',
+          description: '',
+          category: '',
+          location: '',
+          submittedBy: '',
+          priority: 'medium',
+          status: 'pending'
+        })
+        toast.success('Complaint submitted successfully! We\'ll review it shortly.')
+      }
+    } catch {
+      toast.error('Failed to submit complaint. Please try again.')
     }
   }
 

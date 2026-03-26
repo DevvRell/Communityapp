@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, Filter, CheckCircle, XCircle, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
 import { adminAPI, ApiClientError } from '../services/api'
+import { useToast } from '../components/Toast'
 
 const SUBMISSION_TYPES = [
   { value: 'all',       label: 'All types',   icon: Filter },
@@ -38,6 +39,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { dateStyl
 
 const AdminSubmissionsPage = () => {
   const navigate = useNavigate()
+  const toast = useToast()
   const [typeFilter, setTypeFilter]       = useState('all')
   const [statusFilter, setStatusFilter]   = useState('pending')
   const [submissions, setSubmissions]     = useState([])
@@ -83,10 +85,11 @@ const AdminSubmissionsPage = () => {
     setActionError(null)
     try {
       await adminAPI.approve(type, id)
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} #${id} approved.`)
       await fetchSubmissions()
     } catch (e) {
       if (!handleAuthError(e)) {
-        setActionError(`Failed to approve: ${e.message}`)
+        toast.error(`Failed to approve: ${e.message}`)
       }
     } finally {
       setProcessingId(null)
@@ -99,10 +102,11 @@ const AdminSubmissionsPage = () => {
     setActionError(null)
     try {
       await adminAPI.reject(type, id)
+      toast.info(`${type.charAt(0).toUpperCase() + type.slice(1)} #${id} rejected.`)
       await fetchSubmissions()
     } catch (e) {
       if (!handleAuthError(e)) {
-        setActionError(`Failed to reject: ${e.message}`)
+        toast.error(`Failed to reject: ${e.message}`)
       }
     } finally {
       setProcessingId(null)
@@ -149,7 +153,7 @@ const AdminSubmissionsPage = () => {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="input-field py-2"
+              className="input-field w-auto py-2"
             >
               {SUBMISSION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
@@ -157,7 +161,7 @@ const AdminSubmissionsPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="input-field py-2"
+            className="input-field w-auto py-2"
           >
             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>

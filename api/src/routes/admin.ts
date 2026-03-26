@@ -1,10 +1,8 @@
 import { Router, Request, Response } from 'express';
-import path from 'path';
-import fs from 'fs';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
-import { PENDING_DIR, APPROVED_DIR } from '../utils/uploads';
+import { deleteFromCloudinary } from '../utils/cloudinary';
 
 const router = Router();
 
@@ -127,7 +125,7 @@ router.get('/submissions', async (req: Request, res: Response) => {
 
 /**
  * POST /api/admin/photos/:id/approve
- * Move file to approved/ and set status to APPROVED.
+ * Set status to APPROVED. Image stays on Cloudinary.
  */
 router.post('/photos/:id/approve', async (req: Request, res: Response) => {
   try {
@@ -138,18 +136,9 @@ router.post('/photos/:id/approve', async (req: Request, res: Response) => {
     if (photo.submissionStatus === SubmissionStatus.APPROVED) {
       return res.json({ message: 'Already approved.', photo });
     }
-
-    const pendingPath = path.join(process.cwd(), 'uploads', photo.storedPath);
-    const filename = path.basename(photo.storedPath);
-    const approvedPath = path.join(APPROVED_DIR, filename);
-
-    if (fs.existsSync(pendingPath)) {
-      fs.renameSync(pendingPath, approvedPath);
-    }
-    const newStoredPath = path.join('approved', filename);
     await prisma.photo.update({
       where: { id },
-      data: { submissionStatus: SubmissionStatus.APPROVED, storedPath: newStoredPath },
+      data: { submissionStatus: SubmissionStatus.APPROVED },
     });
     res.json({ message: 'Photo approved.', id });
   } catch (e) {
@@ -160,6 +149,7 @@ router.post('/photos/:id/approve', async (req: Request, res: Response) => {
 
 /**
  * POST /api/admin/photos/:id/reject
+ * Set status to REJECTED and delete from Cloudinary.
  */
 router.post('/photos/:id/reject', async (req: Request, res: Response) => {
   try {
@@ -171,8 +161,9 @@ router.post('/photos/:id/reject', async (req: Request, res: Response) => {
       where: { id },
       data: { submissionStatus: SubmissionStatus.REJECTED },
     });
-    const pendingPath = path.join(process.cwd(), 'uploads', photo.storedPath);
-    if (fs.existsSync(pendingPath)) fs.unlinkSync(pendingPath);
+    if (photo.storedPath) {
+      await deleteFromCloudinary(photo.storedPath).catch(() => {});
+    }
     res.json({ message: 'Photo rejected.', id });
   } catch (e) {
     console.error(e);
@@ -224,13 +215,9 @@ router.post('/submissions/:type/:id/approve', async (req: Request, res: Response
       if (photo.submissionStatus === SubmissionStatus.APPROVED) {
         return res.json({ message: 'Already approved.', type, id });
       }
-      const pendingPath = path.join(process.cwd(), 'uploads', photo.storedPath);
-      const filename = path.basename(photo.storedPath);
-      const approvedPath = path.join(APPROVED_DIR, filename);
-      if (fs.existsSync(pendingPath)) fs.renameSync(pendingPath, approvedPath);
       await prisma.photo.update({
         where: { id },
-        data: { submissionStatus: SubmissionStatus.APPROVED, storedPath: path.join('approved', filename) },
+        data: { submissionStatus: SubmissionStatus.APPROVED },
       });
       return res.json({ message: 'Photo approved.', type, id });
     }
@@ -257,8 +244,9 @@ router.post('/submissions/:type/:id/reject', async (req: Request, res: Response)
       const photo = await prisma.photo.findUnique({ where: { id } });
       if (!photo) return res.status(404).json({ error: 'Photo not found.' });
       await prisma.photo.update({ where: { id }, data: { submissionStatus: SubmissionStatus.REJECTED } });
-      const pendingPath = path.join(process.cwd(), 'uploads', photo.storedPath);
-      if (fs.existsSync(pendingPath)) fs.unlinkSync(pendingPath);
+      if (photo.storedPath) {
+        await deleteFromCloudinary(photo.storedPath).catch(() => {});
+      }
       return res.json({ message: 'Photo rejected.', type, id });
     }
     const ok = await setSubmissionStatus(type, id, SubmissionStatus.REJECTED);

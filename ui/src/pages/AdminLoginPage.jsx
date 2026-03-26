@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, Loader2 } from 'lucide-react'
 import { adminAPI } from '../services/api'
+import { useToast } from '../components/Toast'
 
 const AdminLoginPage = () => {
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const toast = useToast()
 
   useEffect(() => {
     if (adminAPI.isLoggedIn()) {
@@ -17,15 +18,15 @@ const AdminLoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     try {
       const { token } = await adminAPI.login(password)
       localStorage.setItem('adminToken', token)
+      toast.success('Logged in successfully!')
       navigate('/admin/submissions')
     } catch (err) {
-      setError(err.message || 'Invalid password. Please try again.')
+      toast.error(err.message || 'Invalid password. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -42,12 +43,6 @@ const AdminLoginPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
             <p className="text-gray-600 mt-1">Enter the admin password to continue</p>
           </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm text-center">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">

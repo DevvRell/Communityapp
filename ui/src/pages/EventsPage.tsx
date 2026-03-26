@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Clock, MapPin, Users, Search, Filter, Plus, Loader2, X } from 'lucide-react'
 import { useEvents, useUpcomingEvents, useCreateEvent, useAttendEvent } from '../services/apiClient'
+import { useToast } from '../components/Toast'
 import type { Event, CreateEventRequest } from '../types/api'
 
 const ATTENDED_EVENTS_KEY = 'cb5_attended_events'
@@ -27,6 +28,8 @@ const EventsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [attendedEvents, setAttendedEvents] = useState<number[]>([])
+
+  const toast = useToast()
 
   const { data: events, loading, error, refetch } = useEvents(
     selectedCategory === 'all' ? undefined : selectedCategory
@@ -154,10 +157,15 @@ const EventsPage = () => {
         {showAddForm && (
           <AddEventForm
             onSubmit={async (data) => {
-              const result = await createEvent(data)
-              if (result) {
-                setShowAddForm(false)
-                refetch()
+              try {
+                const result = await createEvent(data)
+                if (result) {
+                  setShowAddForm(false)
+                  refetch()
+                  toast.success('Event created successfully!')
+                }
+              } catch {
+                toast.error('Failed to create event. Please try again.')
               }
             }}
             onCancel={() => setShowAddForm(false)}
@@ -234,11 +242,16 @@ const EventsPage = () => {
                     disabled={attendedEvents.includes(event.id)}
                     onClick={async () => {
                       if (attendedEvents.includes(event.id)) return
-                      const result = await attendEvent({ id: event.id })
-                      if (result) {
-                        markEventAttended(event.id)
-                        setAttendedEvents(getAttendedEvents())
-                        refetch()
+                      try {
+                        const result = await attendEvent({ id: event.id })
+                        if (result) {
+                          markEventAttended(event.id)
+                          setAttendedEvents(getAttendedEvents())
+                          refetch()
+                          toast.success(`You're attending "${event.title}"!`)
+                        }
+                      } catch {
+                        toast.error('Could not register attendance. Please try again.')
                       }
                     }}
                   >

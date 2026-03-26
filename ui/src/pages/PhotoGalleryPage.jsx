@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Image as ImageIcon, Upload, CheckCircle, Loader2 } from 'lucide-react'
+import { useToast } from '../components/Toast'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 const PhotoGalleryPage = () => {
+  const toast = useToast()
   const [file, setFile] = useState(null)
   const [submitterName, setSubmitterName] = useState('')
-  const [submitMessage, setSubmitMessage] = useState(null)
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photos, setPhotos] = useState([])
@@ -37,34 +38,31 @@ const PhotoGalleryPage = () => {
     const f = e.target.files?.[0]
     if (!f) return
     if (!ALLOWED_TYPES.includes(f.type)) {
-      setSubmitMessage({ type: 'error', text: 'Invalid file type. Use JPEG, PNG, GIF, or WebP.' })
+      toast.error('Invalid file type. Use JPEG, PNG, GIF, or WebP.')
       return
     }
     if (f.size > MAX_FILE_SIZE) {
-      setSubmitMessage({ type: 'error', text: 'File too large. Max 10 MB.' })
+      toast.error('File too large. Max 10 MB.')
       return
     }
     setFile(f)
-    setSubmitMessage(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!file) {
-      setSubmitMessage({ type: 'error', text: 'Please select a photo.' })
+      toast.error('Please select a photo.')
       return
     }
 
     setUploading(true)
-    setSubmitMessage(null)
 
     try {
       const formData = new FormData()
       formData.append('photo', file)
 
-      const headers = {}
-      if (submitterName.trim()) {
-        headers['X-User-Id'] = submitterName.trim()
+      const headers = {
+        'X-User-Id': submitterName.trim() || 'Anonymous',
       }
 
       const res = await fetch(`${API_BASE}/api/photos/upload`, {
@@ -74,15 +72,15 @@ const PhotoGalleryPage = () => {
       })
 
       if (res.ok) {
-        setSubmitMessage({ type: 'success', text: 'Photo submitted for review! It will appear in the gallery once approved.' })
+        toast.success('Photo submitted for review! It will appear in the gallery once approved.')
         setFile(null)
         setSubmitterName('')
       } else {
         const data = await res.json().catch(() => ({}))
-        setSubmitMessage({ type: 'error', text: data.error || 'Upload failed. Please try again.' })
+        toast.error(data.error || 'Upload failed. Please try again.')
       }
     } catch {
-      setSubmitMessage({ type: 'error', text: 'Network error. Please try again.' })
+      toast.error('Network error. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -154,11 +152,6 @@ const PhotoGalleryPage = () => {
                 </div>
               )}
             </div>
-            {submitMessage && (
-              <p className={`mt-2 text-sm ${submitMessage.type === 'error' ? 'text-red-600' : submitMessage.type === 'success' ? 'text-green-600' : 'text-primary-600'}`}>
-                {submitMessage.text}
-              </p>
-            )}
             <button type="submit" className="btn-primary mt-4 flex items-center space-x-2" disabled={!file || uploading}>
               {uploading ? (
                 <>
@@ -190,7 +183,7 @@ const PhotoGalleryPage = () => {
               {photos.map((photo) => (
                 <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
                   <img
-                    src={`${API_BASE}/uploads/approved/${photo.storedPath?.split('/').pop() || photo.storedPath}`}
+                    src={photo.url}
                     alt={photo.originalName}
                     className="w-full h-48 object-cover"
                   />

@@ -89,6 +89,7 @@ model Photo {
   id                Int              @id @default(autoincrement())
   submittedBy       String?
   storedPath        String
+  url               String?
   mimeType          String
   originalName      String
   fileSize          Int?
