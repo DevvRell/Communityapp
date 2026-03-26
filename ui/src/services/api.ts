@@ -281,6 +281,13 @@ export const eventAPI = {
 const ADMIN_KEY = () => import.meta.env.VITE_ADMIN_API_KEY || '';
 
 export const adminAPI = {
+  login: async (password: string): Promise<{ token: string }> => {
+    return apiRequest<{ token: string }>('/api/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  },
+
   getSubmissions: async (type?: string, status?: string): Promise<{ submissions: any[] }> => {
     const query = buildQueryString({
       type: type && type !== 'all' ? type : undefined,
@@ -302,6 +309,35 @@ export const adminAPI = {
     return apiRequest(`/api/admin/submissions/${type}/${id}/reject`, {
       method: 'POST',
       headers: { 'X-Admin-Key': ADMIN_KEY() },
+    });
+  },
+};
+
+// ============================================================================
+// Committee Notes API
+// ============================================================================
+
+export const committeeNotesAPI = {
+  getAll: async (committee?: string): Promise<any[]> => {
+    const query = committee ? buildQueryString({ committee }) : '';
+    return apiRequest<any[]>(`/api/committee-notes${query}`);
+  },
+
+  getById: async (id: number): Promise<any> => {
+    return apiRequest<any>(`/api/committee-notes/${id}`);
+  },
+
+  create: async (data: any): Promise<any> => {
+    return apiRequest<any>('/api/committee-notes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: number, data: any): Promise<any> => {
+    return apiRequest<any>(`/api/committee-notes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   },
 };
@@ -329,4 +365,5 @@ export default {
   event: eventAPI,
   health: healthAPI,
   admin: adminAPI,
+  committeeNotes: committeeNotesAPI,
 };

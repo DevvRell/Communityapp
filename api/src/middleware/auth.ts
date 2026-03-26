@@ -29,17 +29,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
 /**
  * Require admin key for admin-only endpoints.
- * Set ADMIN_API_KEY in env; send as X-Admin-Key header.
+ * Accepts either X-Admin-Key header or Bearer token in Authorization header.
  */
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   const key = process.env.ADMIN_API_KEY;
-  const provided = req.headers['x-admin-key'] as string | undefined;
   if (!key) {
     res.status(503).json({ error: 'Admin API not configured (ADMIN_API_KEY).' });
     return;
   }
-  if (provided !== key) {
-    res.status(403).json({ error: 'Forbidden. Valid X-Admin-Key required.' });
+  const headerKey = req.headers['x-admin-key'] as string | undefined;
+  const authHeader = req.headers['authorization'];
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+  if (headerKey !== key && bearerToken !== key) {
+    res.status(403).json({ error: 'Forbidden. Valid admin credentials required.' });
     return;
   }
   next();

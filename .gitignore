@@ -22,6 +22,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code local settings (project-specific, not for sharing)
+.claude/settings.local.json
+
 # Logs
 *.log
 logs/

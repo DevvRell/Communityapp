@@ -1,16 +1,43 @@
-import { useState } from 'react'
-import { Calendar, Clock, MapPin, Users, Search, Filter, Plus, Loader2 } from 'lucide-react'
-import { useEvents, useUpcomingEvents } from '../services/apiClient'
-import type { Event } from '../types/api'
+import { useState, useEffect } from 'react'
+import { Calendar, Clock, MapPin, Users, Search, Filter, Plus, Loader2, X } from 'lucide-react'
+import { useEvents, useUpcomingEvents, useCreateEvent, useAttendEvent } from '../services/apiClient'
+import type { Event, CreateEventRequest } from '../types/api'
+
+const ATTENDED_EVENTS_KEY = 'cb5_attended_events'
+
+function getAttendedEvents(): number[] {
+  try {
+    const stored = localStorage.getItem(ATTENDED_EVENTS_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+function markEventAttended(eventId: number) {
+  const attended = getAttendedEvents()
+  if (!attended.includes(eventId)) {
+    attended.push(eventId)
+    localStorage.setItem(ATTENDED_EVENTS_KEY, JSON.stringify(attended))
+  }
+}
 
 const EventsPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [attendedEvents, setAttendedEvents] = useState<number[]>([])
 
-  const { data: events, loading, error } = useEvents(
+  const { data: events, loading, error, refetch } = useEvents(
     selectedCategory === 'all' ? undefined : selectedCategory
   )
   const { data: upcomingEvents } = useUpcomingEvents()
+  const { mutate: createEvent, loading: creating, error: createError } = useCreateEvent()
+  const { mutate: attendEvent } = useAttendEvent()
+
+  useEffect(() => {
+    setAttendedEvents(getAttendedEvents())
+  }, [])
 
   const categories = [
     { value: 'all', label: 'All Events' },
@@ -113,12 +140,31 @@ const EventsPage = () => {
             </div>
 
             {/* Add Event Button */}
-            <button className="btn-primary flex items-center justify-center space-x-2">
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-primary flex items-center justify-center space-x-2"
+            >
               <Plus size={16} />
               <span>Add Event</span>
             </button>
           </div>
         </div>
+
+        {/* Add Event Form */}
+        {showAddForm && (
+          <AddEventForm
+            onSubmit={async (data) => {
+              const result = await createEvent(data)
+              if (result) {
+                setShowAddForm(false)
+                refetch()
+              }
+            }}
+            onCancel={() => setShowAddForm(false)}
+            loading={creating}
+            error={createError}
+          />
+        )}
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -183,8 +229,20 @@ const EventsPage = () => {
 
                 {/* Actions */}
                 <div className="flex space-x-2">
-                  <button className="btn-primary flex-1 text-sm">
-                    Attend
+                  <button
+                    className={`flex-1 text-sm ${attendedEvents.includes(event.id) ? 'bg-gray-300 text-gray-500 cursor-not-allowed rounded-lg px-4 py-2 font-medium' : 'btn-primary'}`}
+                    disabled={attendedEvents.includes(event.id)}
+                    onClick={async () => {
+                      if (attendedEvents.includes(event.id)) return
+                      const result = await attendEvent({ id: event.id })
+                      if (result) {
+                        markEventAttended(event.id)
+                        setAttendedEvents(getAttendedEvents())
+                        refetch()
+                      }
+                    }}
+                  >
+                    {attendedEvents.includes(event.id) ? 'Attending' : 'Attend'}
                   </button>
                   <button className="btn-secondary text-sm">
                     Details
@@ -227,6 +285,181 @@ const EventsPage = () => {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Add Event Form Component
+// ============================================================================
+
+interface AddEventFormProps {
+  onSubmit: (data: CreateEventRequest) => Promise<void>
+  onCancel: () => void
+  loading: boolean
+  error: string | null
+}
+
+const AddEventForm = ({ onSubmit, onCancel, loading, error }: AddEventFormProps) => {
+  const [formData, setFormData] = useState<CreateEventRequest>({
+    title: '',
+    category: 'Community',
+    description: '',
+    date: '',
+    time: '',
+    location: '',
+    organizer: '',
+    maxAttendees: 50,
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'maxAttendees' ? parseInt(value) || 0 : value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await onSubmit(formData)
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">Add New Event</h2>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+          <X size={20} />
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="Event title"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select name="category" value={formData.category} onChange={handleChange} className="input-field">
+            <option value="Community">Community</option>
+            <option value="Business">Business</option>
+            <option value="Food & Culture">Food & Culture</option>
+            <option value="Sports & Recreation">Sports & Recreation</option>
+            <option value="Arts & Culture">Arts & Culture</option>
+            <option value="Education">Education</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            required
+            className="input-field"
+            rows={3}
+            placeholder="Describe the event..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input
+            type="date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            required
+            className="input-field"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+          <input
+            type="text"
+            name="time"
+            value={formData.time}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="e.g. 09:00 AM - 12:00 PM"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+          <input
+            type="text"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="Venue name or address"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Organizer</label>
+          <input
+            type="text"
+            name="organizer"
+            value={formData.organizer}
+            onChange={handleChange}
+            required
+            className="input-field"
+            placeholder="Organizer name"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Max Attendees</label>
+          <input
+            type="number"
+            name="maxAttendees"
+            value={formData.maxAttendees}
+            onChange={handleChange}
+            required
+            min={1}
+            className="input-field"
+          />
+        </div>
+
+        <div className="flex items-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full flex items-center justify-center space-x-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={16} />
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <span>Submit Event</span>
+            )}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

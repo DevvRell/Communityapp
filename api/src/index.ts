@@ -2,13 +2,17 @@ import express, { Application, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import dotenv from 'dotenv';
-import { Pool } from 'pg';
 import { prisma } from './lib/prisma';
 import businessesRouter from './routes/businesses';
 import complaintsRouter from './routes/complaints';
 import eventsRouter from './routes/events';
 import photosRouter from './routes/photos';
 import adminRouter from './routes/admin';
+import authRouter from './routes/auth';
+import statsRouter from './routes/stats';
+import youtubeRouter from './routes/youtube';
+import committeeUpdatesRouter from './routes/committeeUpdates';
+import committeeNotesRouter from './routes/committeeNotes';
 import { ensureUploadDirs, APPROVED_DIR } from './utils/uploads';
 
 dotenv.config();
@@ -29,6 +33,7 @@ const allowedOrigins = [
   'http://localhost:5174',
   process.env.RENDER_EXTERNAL_URL,
   process.env.STAGING_URL,
+  process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
 app.use((req, res, next) => {
@@ -37,20 +42,11 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Admin-Key, X-User-Id, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Admin-Key, X-User-Id');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
-});
-
-// PostgreSQL connection pool
-const pool = new Pool({
-  user: process.env.POSTGRES_USER || 'postgres',
-  host: process.env.POSTGRES_HOST || 'localhost',
-  database: process.env.POSTGRES_DB || 'cb5_db',
-  password: process.env.POSTGRES_PASSWORD || 'postgres',
-  port: parseInt(process.env.POSTGRES_PORT || '5432'),
 });
 
 // Swagger configuration
@@ -223,7 +219,12 @@ app.use('/api/businesses', businessesRouter);
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/photos', photosRouter);
+app.use('/api/admin', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/stats', statsRouter);
+app.use('/api/youtube', youtubeRouter);
+app.use('/api/committee-updates', committeeUpdatesRouter);
+app.use('/api/committee-notes', committeeNotesRouter);
 
 // Serve approved uploads only (pending/ is NOT served)
 app.use('/uploads/approved', express.static(APPROVED_DIR));
@@ -238,7 +239,6 @@ app.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing server...');
-  await pool.end();
   await prisma.$disconnect();
   process.exit(0);
 });

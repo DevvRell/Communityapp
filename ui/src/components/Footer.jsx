@@ -15,14 +15,14 @@ const Footer = () => {
               <span className="text-xl font-bold">The Competent Community</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
-              Connecting our community through local businesses, events, and open communication. 
+              Connecting our community through local businesses, events, and open communication.
               Together we build a stronger, more united neighborhood.
             </p>
             <div className="flex space-x-4">
-              <a href="mailto:contact@unitethehood.com" className="text-gray-300 hover:text-white transition-colors">
+              <a href="mailto:info@brooklyncb5.org" className="text-gray-300 hover:text-white transition-colors">
                 <Mail size={20} />
               </a>
-              <a href="tel:+1234567890" className="text-gray-300 hover:text-white transition-colors">
+              <a href="tel:+17186294744" className="text-gray-300 hover:text-white transition-colors">
                 <Phone size={20} />
               </a>
               <span className="text-gray-300">
@@ -62,19 +62,19 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Contact</h3>
             <div className="space-y-2 text-gray-300">
-              <p>contact@unitethehood.com</p>
-              <p>+1 (234) 567-8900</p>
-              <p>123 Community St<br />Neighborhood, NY 10001</p>
+              <p>info@brooklyncb5.org</p>
+              <p>(718) 629-4744</p>
+              <p>1285 Decatur St<br />Brooklyn, NY 11207</p>
             </div>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-300">
-          <p>&copy; 2024 The Competent Community. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} The Competent Community. All rights reserved.</p>
         </div>
       </div>
     </footer>
   )
 }
 
-export default Footer 
+export default Footer
