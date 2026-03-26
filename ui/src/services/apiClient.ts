@@ -150,7 +150,7 @@ export function useSearchBusinesses(query: string) {
 }
 
 export function useCreateBusiness() {
-  return useMutation<Business, CreateBusinessRequest>(businessAPI.create);
+  return useMutation<Business, CreateBusinessRequest | FormData>(businessAPI.create);
 }
 
 export function useUpdateBusiness() {
@@ -214,7 +214,7 @@ export function useUpcomingEvents() {
 }
 
 export function useCreateEvent() {
-  return useMutation<Event, CreateEventRequest>(eventAPI.create);
+  return useMutation<Event, CreateEventRequest | FormData>(eventAPI.create);
 }
 
 export function useAttendEvent() {

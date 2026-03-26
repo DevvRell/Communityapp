@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { ComplaintStatus, ComplaintPriority, SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
+import { sanitize } from '../middleware/validate';
+import { submissionLimiter } from '../middleware/rateLimits';
 
 const router = Router();
 
@@ -216,12 +218,21 @@ router.get('/:id', async (req: Request, res: Response) => {
  *       201:
  *         description: Complaint created
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', submissionLimiter, async (req: Request, res: Response) => {
   try {
-    const { title, description, category, location, status, priority, submittedBy } = req.body;
+    const title = sanitize(req.body.title);
+    const description = sanitize(req.body.description);
+    const category = sanitize(req.body.category);
+    const location = sanitize(req.body.location);
+    const submittedBy = sanitize(req.body.submittedBy);
+    const { status, priority } = req.body;
 
     if (!title || !description || !category || !location || !submittedBy) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (title.length > 200 || description.length > 2000 || location.length > 300 || submittedBy.length > 100) {
+      return res.status(400).json({ error: 'One or more fields exceed maximum length.' });
     }
 
     const complaint = await prisma.complaint.create({

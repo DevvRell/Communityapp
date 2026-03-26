@@ -3,11 +3,12 @@ import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
 import { deleteFromCloudinary } from '../utils/cloudinary';
+import { loginLimiter } from '../middleware/rateLimits';
 
 const router = Router();
 
 // Login must be BEFORE requireAdmin so it's publicly accessible
-router.post('/login', (req: Request, res: Response) => {
+router.post('/login', loginLimiter, (req: Request, res: Response) => {
   const { password } = req.body;
   const adminKey = process.env.ADMIN_API_KEY;
 

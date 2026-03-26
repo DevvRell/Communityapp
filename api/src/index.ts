@@ -1,6 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { prisma } from './lib/prisma';
 import businessesRouter from './routes/businesses';
@@ -13,6 +14,7 @@ import youtubeRouter from './routes/youtube';
 import committeeUpdatesRouter from './routes/committeeUpdates';
 import committeeNotesRouter from './routes/committeeNotes';
 import { ensureUploadDirs, APPROVED_DIR } from './utils/uploads';
+import { globalLimiter } from './middleware/rateLimits';
 
 dotenv.config();
 ensureUploadDirs();
@@ -20,9 +22,15 @@ ensureUploadDirs();
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Security headers ───────────────────────────────────────────────────────
+app.use(helmet());
+
+// ── Global rate limit: 100 requests per minute per IP ──────────────────────
+app.use(globalLimiter);
+
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // CORS middleware
 const allowedOrigins = [

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, MapPin, Users, Search, Filter, Plus, Loader2, X } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Search, Filter, Plus, Loader2, X, ImagePlus } from 'lucide-react'
 import { useEvents, useUpcomingEvents, useCreateEvent, useAttendEvent } from '../services/apiClient'
 import { useToast } from '../components/Toast'
 import type { Event, CreateEventRequest } from '../types/api'
@@ -156,13 +156,13 @@ const EventsPage = () => {
         {/* Add Event Form */}
         {showAddForm && (
           <AddEventForm
-            onSubmit={async (data) => {
+            onSubmit={async (fd) => {
               try {
-                const result = await createEvent(data)
+                const result = await createEvent(fd)
                 if (result) {
                   setShowAddForm(false)
                   refetch()
-                  toast.success('Event created successfully!')
+                  toast.success('Event submitted! It will appear after admin approval.')
                 }
               } catch {
                 toast.error('Failed to create event. Please try again.')
@@ -307,7 +307,7 @@ const EventsPage = () => {
 // ============================================================================
 
 interface AddEventFormProps {
-  onSubmit: (data: CreateEventRequest) => Promise<void>
+  onSubmit: (data: FormData) => Promise<void>
   onCancel: () => void
   loading: boolean
   error: string | null
@@ -324,6 +324,8 @@ const AddEventForm = ({ onSubmit, onCancel, loading, error }: AddEventFormProps)
     organizer: '',
     maxAttendees: 50,
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -333,9 +335,31 @@ const AddEventForm = ({ onSubmit, onCancel, loading, error }: AddEventFormProps)
     }))
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setImageFile(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setImagePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      setImagePreview(null)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await onSubmit(formData)
+    const fd = new FormData()
+    fd.append('title', formData.title)
+    fd.append('category', formData.category)
+    fd.append('description', formData.description)
+    fd.append('date', formData.date)
+    fd.append('time', formData.time)
+    fd.append('location', formData.location)
+    fd.append('organizer', formData.organizer)
+    fd.append('maxAttendees', String(formData.maxAttendees))
+    if (imageFile) fd.append('image', imageFile)
+    await onSubmit(fd)
   }
 
   return (
@@ -456,11 +480,42 @@ const AddEventForm = ({ onSubmit, onCancel, loading, error }: AddEventFormProps)
           />
         </div>
 
-        <div className="flex items-end">
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Event Image (optional)</label>
+          <div className="flex items-center gap-4">
+            <label className="cursor-pointer flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              <ImagePlus size={18} />
+              {imageFile ? 'Change image' : 'Choose image'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+            {imagePreview && (
+              <div className="relative">
+                <img src={imagePreview} alt="Preview" className="h-16 w-24 object-cover rounded-lg border border-gray-200" />
+                <button
+                  type="button"
+                  onClick={() => { setImageFile(null); setImagePreview(null) }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {imageFile && !imagePreview && (
+              <span className="text-sm text-gray-500">{imageFile.name}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="md:col-span-2 flex items-center gap-3 pt-2">
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full flex items-center justify-center space-x-2"
+            className="btn-primary flex items-center justify-center space-x-2"
           >
             {loading ? (
               <>
@@ -470,6 +525,9 @@ const AddEventForm = ({ onSubmit, onCancel, loading, error }: AddEventFormProps)
             ) : (
               <span>Submit Event</span>
             )}
+          </button>
+          <button type="button" onClick={onCancel} className="btn-secondary">
+            Cancel
           </button>
         </div>
       </form>

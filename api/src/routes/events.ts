@@ -1,6 +1,12 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
+import { uploadImage } from '../middleware/upload';
+import { uploadToCloudinary } from '../utils/cloudinary';
+import { sanitizeFilename } from '../utils/uploads';
+import { sanitize } from '../middleware/validate';
+import { submissionLimiter } from '../middleware/rateLimits';
 
 const router = Router();
 
@@ -219,12 +225,40 @@ router.get('/:id', async (req: Request, res: Response) => {
  *       201:
  *         description: Event created
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', submissionLimiter, (req: Request, res: Response, next) => {
+  uploadImage(req, res, (err: unknown) => {
+    if (err) {
+      if (err instanceof Error && 'code' in err && (err as multer.MulterError).code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Image too large. Max 10 MB.' });
+      }
+      return res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed' });
+    }
+    next();
+  });
+}, async (req: Request, res: Response) => {
   try {
-    const { title, category, description, date, time, location, organizer, attendees, maxAttendees, image } = req.body;
+    const title = sanitize(req.body.title);
+    const category = sanitize(req.body.category);
+    const description = sanitize(req.body.description);
+    const time = sanitize(req.body.time);
+    const location = sanitize(req.body.location);
+    const organizer = sanitize(req.body.organizer);
+    const { date, attendees, maxAttendees } = req.body;
 
     if (!title || !category || !description || !date || !time || !location || !organizer || !maxAttendees) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (title.length > 200 || description.length > 2000 || location.length > 300) {
+      return res.status(400).json({ error: 'One or more fields exceed maximum length.' });
+    }
+
+    let imageUrl: string | null = null;
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (file && file.buffer) {
+      const safeName = sanitizeFilename(file.originalname || 'event-image');
+      const result = await uploadToCloudinary(file.buffer, safeName);
+      imageUrl = result.url;
     }
 
     const event = await prisma.event.create({
@@ -238,7 +272,7 @@ router.post('/', async (req: Request, res: Response) => {
         organizer,
         attendees: attendees ? parseInt(attendees) : 0,
         maxAttendees: parseInt(maxAttendees),
-        image: image || null,
+        image: imageUrl,
       },
     });
 

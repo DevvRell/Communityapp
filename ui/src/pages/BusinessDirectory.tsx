@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2, Plus, X } from 'lucide-react'
+import { Search, MapPin, Phone, Globe, Star, Filter, Building2, Loader2, Plus, X, ImagePlus } from 'lucide-react'
 import { useBusinesses, useSearchBusinesses, useCreateBusiness } from '../services/apiClient'
 import { useToast } from '../components/Toast'
 import { useDebounce } from '../hooks/useDebounce'
@@ -143,9 +143,9 @@ const BusinessDirectory = () => {
         {/* Add Business Form */}
         {showAddForm && (
           <AddBusinessForm
-            onSubmit={async (data) => {
+            onSubmit={async (fd) => {
               try {
-                const result = await createBusiness(data)
+                const result = await createBusiness(fd)
                 if (result) {
                   setShowAddForm(false)
                   refetch()
@@ -297,7 +297,7 @@ const BusinessDirectory = () => {
 // ============================================================================
 
 interface AddBusinessFormProps {
-  onSubmit: (data: CreateBusinessRequest) => Promise<void>
+  onSubmit: (data: FormData) => Promise<void>
   onCancel: () => void
   loading: boolean
   error: string | null
@@ -314,15 +314,38 @@ const AddBusinessForm = ({ onSubmit, onCancel, loading, error, categories }: Add
     email: '',
     hours: '',
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setImageFile(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setImagePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      setImagePreview(null)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await onSubmit(formData)
+    const fd = new FormData()
+    fd.append('name', formData.name)
+    fd.append('category', formData.category)
+    fd.append('description', formData.description)
+    fd.append('address', formData.address)
+    fd.append('phone', formData.phone)
+    fd.append('email', formData.email)
+    if (formData.hours) fd.append('hours', formData.hours)
+    if (imageFile) fd.append('image', imageFile)
+    await onSubmit(fd)
   }
 
   return (
@@ -426,6 +449,37 @@ const AddBusinessForm = ({ onSubmit, onCancel, loading, error, categories }: Add
             className="input-field"
             placeholder="Mon-Fri 9am-5pm"
           />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Business Image (optional)</label>
+          <div className="flex items-center gap-4">
+            <label className="cursor-pointer flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              <ImagePlus size={18} />
+              {imageFile ? 'Change image' : 'Choose image'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+            {imagePreview && (
+              <div className="relative">
+                <img src={imagePreview} alt="Preview" className="h-16 w-24 object-cover rounded-lg border border-gray-200" />
+                <button
+                  type="button"
+                  onClick={() => { setImageFile(null); setImagePreview(null) }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {imageFile && !imagePreview && (
+              <span className="text-sm text-gray-500">{imageFile.name}</span>
+            )}
+          </div>
         </div>
 
         <div className="md:col-span-2 flex items-center gap-3 pt-2">

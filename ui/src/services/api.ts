@@ -144,9 +144,14 @@ export const businessAPI = {
   },
 
   /**
-   * Create a new business
+   * Create a new business (supports image upload via FormData)
    */
-  create: async (data: CreateBusinessRequest): Promise<Business> => {
+  create: async (data: CreateBusinessRequest | FormData): Promise<Business> => {
+    if (data instanceof FormData) {
+      const url = `${BASE_URL}/api/businesses`;
+      const response = await fetch(url, { method: 'POST', body: data });
+      return handleResponse<Business>(response);
+    }
     return apiRequest<Business>('/api/businesses', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -254,9 +259,14 @@ export const eventAPI = {
   },
 
   /**
-   * Create a new event
+   * Create a new event (supports image upload via FormData)
    */
-  create: async (data: CreateEventRequest): Promise<Event> => {
+  create: async (data: CreateEventRequest | FormData): Promise<Event> => {
+    if (data instanceof FormData) {
+      const url = `${BASE_URL}/api/events`;
+      const response = await fetch(url, { method: 'POST', body: data });
+      return handleResponse<Event>(response);
+    }
     return apiRequest<Event>('/api/events', {
       method: 'POST',
       body: JSON.stringify(data),

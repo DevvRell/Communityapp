@@ -1,7 +1,13 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
+import { uploadImage } from '../middleware/upload';
+import { uploadToCloudinary } from '../utils/cloudinary';
+import { sanitizeFilename } from '../utils/uploads';
+import { sanitize } from '../middleware/validate';
+import { submissionLimiter } from '../middleware/rateLimits';
 
 const router = Router();
 
@@ -246,12 +252,37 @@ router.get('/:id', async (req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Business'
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', submissionLimiter, (req: Request, res: Response, next) => {
+  uploadImage(req, res, (err: unknown) => {
+    if (err) {
+      if (err instanceof Error && 'code' in err && (err as multer.MulterError).code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Image too large. Max 10 MB.' });
+      }
+      return res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed' });
+    }
+    next();
+  });
+}, async (req: Request, res: Response) => {
   try {
-    const { name, category, description, address, phone, email, rating, reviews, hours, website, borough, zip, sub_category } = req.body;
+    const name = sanitize(req.body.name);
+    const category = sanitize(req.body.category);
+    const description = sanitize(req.body.description);
+    const address = sanitize(req.body.address);
+    const phone = sanitize(req.body.phone);
+    const email = sanitize(req.body.email);
+    const hours = sanitize(req.body.hours);
+    const website = sanitize(req.body.website);
+    const borough = sanitize(req.body.borough);
+    const zip = sanitize(req.body.zip);
+    const sub_category = sanitize(req.body.sub_category);
+    const { rating, reviews } = req.body;
 
     if (!name || !category || !address || !phone) {
       return res.status(400).json({ error: 'Missing required fields: name, category, address, phone' });
+    }
+
+    if (name.length > 200 || address.length > 300 || (description && description.length > 2000)) {
+      return res.status(400).json({ error: 'One or more fields exceed maximum length.' });
     }
 
     // Be lenient with rating - just ensure it's a valid number between 0-5, default to 0 if invalid
@@ -268,6 +299,14 @@ router.post('/', async (req: Request, res: Response) => {
       ratingValue = 0;
     }
 
+    let imageUrl: string | null = null;
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (file && file.buffer) {
+      const safeName = sanitizeFilename(file.originalname || 'business-image');
+      const result = await uploadToCloudinary(file.buffer, safeName);
+      imageUrl = result.url;
+    }
+
     const business = await prisma.business.create({
       data: {
         name,
@@ -280,6 +319,7 @@ router.post('/', async (req: Request, res: Response) => {
         reviews: reviews ? parseInt(reviews) || 0 : 0,
         hours: hours || null,
         website: website || null,
+        image: imageUrl,
         borough: borough || null,
         zip: zip || null,
         sub_category: sub_category || null,
