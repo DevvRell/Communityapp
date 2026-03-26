@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { ComplaintStatus, ComplaintPriority, SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
+import { notifyAdmin } from '../utils/emailNotifier';
 
 const router = Router();
 
@@ -235,6 +236,11 @@ router.post('/', async (req: Request, res: Response) => {
         submittedBy,
       },
     });
+
+    notifyAdmin(
+      `[CB5] New complaint: ${title}`,
+      `A new complaint "${title}" (${category}) at ${location} has been submitted by ${submittedBy} and is pending review.`
+    );
 
     res.status(201).json({
       ...complaint,

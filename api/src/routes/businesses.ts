@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
+import { notifyAdmin } from '../utils/emailNotifier';
 
 const router = Router();
 
@@ -285,6 +286,11 @@ router.post('/', async (req: Request, res: Response) => {
         sub_category: sub_category || null,
       },
     });
+
+    notifyAdmin(
+      `[CB5] New business submission: ${name}`,
+      `A new business "${name}" (${category}) at ${address} has been submitted and is pending review.`
+    );
 
     res.status(201).json({
       ...business,

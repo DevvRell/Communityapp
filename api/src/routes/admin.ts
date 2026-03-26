@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
 import { PENDING_DIR, APPROVED_DIR } from '../utils/uploads';
+import { notifyAdmin } from '../utils/emailNotifier';
 
 const router = Router();
 
@@ -215,10 +216,12 @@ router.post('/submissions/:type/:id/approve', async (req: Request, res: Response
         where: { id },
         data: { submissionStatus: SubmissionStatus.APPROVED, storedPath: path.join('approved', filename) },
       });
+      notifyAdmin(`[CB5] Photo approved (#${id})`, `Photo #${id} has been approved.`);
       return res.json({ message: 'Photo approved.', type, id });
     }
     const ok = await setSubmissionStatus(type, id, SubmissionStatus.APPROVED);
     if (!ok) return res.status(400).json({ error: 'Unknown type.' });
+    notifyAdmin(`[CB5] ${type} approved (#${id})`, `${type} #${id} has been approved.`);
     res.json({ message: 'Approved.', type, id });
   } catch (e) {
     console.error(e);
@@ -242,10 +245,12 @@ router.post('/submissions/:type/:id/reject', async (req: Request, res: Response)
       await prisma.photo.update({ where: { id }, data: { submissionStatus: SubmissionStatus.REJECTED } });
       const pendingPath = path.join(process.cwd(), 'uploads', photo.storedPath);
       if (fs.existsSync(pendingPath)) fs.unlinkSync(pendingPath);
+      notifyAdmin(`[CB5] Photo rejected (#${id})`, `Photo #${id} has been rejected.`);
       return res.json({ message: 'Photo rejected.', type, id });
     }
     const ok = await setSubmissionStatus(type, id, SubmissionStatus.REJECTED);
     if (!ok) return res.status(400).json({ error: 'Unknown type.' });
+    notifyAdmin(`[CB5] ${type} rejected (#${id})`, `${type} #${id} has been rejected.`);
     res.json({ message: 'Rejected.', type, id });
   } catch (e) {
     console.error(e);

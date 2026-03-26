@@ -6,6 +6,7 @@ import { SubmissionStatus } from '@prisma/client';
 import { optionalUser, requireAuth } from '../middleware/auth';
 import { uploadPhoto } from '../middleware/upload';
 import rateLimit from 'express-rate-limit';
+import { notifyAdmin } from '../utils/emailNotifier';
 
 export type RequestWithUser = Request & { userId?: string; file?: Express.Multer.File };
 
@@ -57,6 +58,11 @@ router.post(
           submissionStatus: SubmissionStatus.PENDING,
         },
       });
+      notifyAdmin(
+        `[CB5] New photo upload: ${file.originalname}`,
+        `A new photo "${file.originalname}" has been uploaded by ${userId || 'anonymous'} and is pending review.`
+      );
+
       res.status(201).json({
         id: photo.id,
         message: 'Photo submitted for review.',

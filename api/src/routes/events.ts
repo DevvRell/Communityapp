@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
+import { notifyAdmin } from '../utils/emailNotifier';
 
 const router = Router();
 
@@ -241,6 +242,11 @@ router.post('/', async (req: Request, res: Response) => {
         image: image || null,
       },
     });
+
+    notifyAdmin(
+      `[CB5] New event submission: ${title}`,
+      `A new event "${title}" (${category}) on ${date} at ${location} has been submitted by ${organizer} and is pending review.`
+    );
 
     res.status(201).json({
       ...event,

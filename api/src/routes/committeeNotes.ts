@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
 import { uploadDocuments } from '../middleware/upload';
+import { notifyAdmin } from '../utils/emailNotifier';
 
 const router = Router();
 
@@ -152,6 +153,11 @@ router.post('/', (req: Request, res: Response) => {
           attachments: attachmentsMeta ?? Prisma.JsonNull,
         },
       });
+
+      notifyAdmin(
+        `[CB5] New committee notes: ${committeeName}`,
+        `Meeting notes for "${committeeName}" on ${meetingDate} submitted by ${submittedBy} (${submitterEmail}) are pending review.`
+      );
 
       res.status(201).json({
         ...note,
