@@ -25,5 +25,9 @@ npx prisma migrate deploy || {
   npx prisma migrate deploy || echo "⚠️  Could not apply migrations. Database may need manual setup."
 }
 
+echo "📁 Ensuring upload directories exist..."
+mkdir -p /app/uploads/pending /app/uploads/approved 2>/dev/null || \
+  echo "⚠️  Could not create upload dirs (likely a volume permission issue — see RENDER_DEPLOYMENT.md)"
+
 echo "🚀 Starting application..."
 exec "$@"

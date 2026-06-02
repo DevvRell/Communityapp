@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Shield, Filter, CheckCircle, XCircle, Trash2, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2, Search } from 'lucide-react'
 import { adminAPI, ApiClientError } from '../services/api'
 import { useToast } from '../components/Toast'
+import PageHeader from '../components/ui/PageHeader'
 
 const SUBMISSION_TYPES = [
   { value: 'all',       label: 'All types',   icon: Filter },
@@ -149,27 +150,24 @@ const AdminSubmissionsPage = () => {
   }, [submissions, searchQuery])
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="Admin Console"
+        title={<>Review the <em className="text-gold-300">queue.</em></>}
+        subtitle="Approve, reject, or delete pending community submissions."
+        size="sm"
+      >
+        <button
+          onClick={fetchSubmissions}
+          disabled={loading}
+          className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </PageHeader>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <Shield className="text-primary-600" size={32} />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin – Submissions</h1>
-              <p className="text-gray-600">Review and approve or reject community submissions.</p>
-            </div>
-          </div>
-          <button
-            onClick={fetchSubmissions}
-            disabled={loading}
-            className="flex items-center gap-2 text-sm text-gray-500 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
-          >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
         {/* Action error banner */}
         {actionError && (

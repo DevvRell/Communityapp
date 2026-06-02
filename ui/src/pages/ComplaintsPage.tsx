@@ -3,6 +3,7 @@ import { MessageSquare, AlertCircle, CheckCircle, Clock, MapPin, Plus, Filter, L
 import { useComplaints, useCreateComplaint } from '../services/apiClient'
 import { useToast } from '../components/Toast'
 import type { CreateComplaintRequest } from '../types/api'
+import PageHeader from '../components/ui/PageHeader'
 
 const ComplaintsPage = () => {
   const [showForm, setShowForm] = useState(false)
@@ -130,17 +131,14 @@ const ComplaintsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Community Complaints</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Report issues, voice concerns, and track the status of community problems. 
-            Together we can make our neighborhood better.
-          </p>
-        </div>
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="Community Voice"
+        title={<>Report concerns. <em className="text-gold-300">Track resolutions.</em></>}
+        subtitle="Your voice on the record. File issues, follow them through, and see what your community board is doing about them."
+      />
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Action Bar */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">

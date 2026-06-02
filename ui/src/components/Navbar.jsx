@@ -11,9 +11,16 @@ const Navbar = () => {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [hasLogo, setHasLogo] = useState(false)
   const dropdownRef = useRef(null)
 
   const isAdmin = adminAPI.isLoggedIn()
+
+  useEffect(() => {
+    fetch('/logo.png', { method: 'HEAD' })
+      .then((r) => setHasLogo(r.ok))
+      .catch(() => setHasLogo(false))
+  }, [])
 
   const handleLogout = () => {
     adminAPI.logout()
@@ -21,7 +28,6 @@ const Navbar = () => {
     navigate('/')
   }
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -32,20 +38,17 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Close dropdown on route change
   useEffect(() => {
     setDropdownOpen(false)
     setMobileOpen(false)
   }, [location.pathname])
 
-  // Top-level nav items
   const primaryNav = [
-    { path: '/', label: 'Home', icon: Home },
+    { path: '/preview', label: 'Home', icon: Home },
     { path: '/businesses', label: 'Businesses', icon: Building2 },
     { path: '/events', label: 'Events', icon: Calendar },
   ]
 
-  // Grouped under "Community" dropdown
   const communityNav = [
     { path: '/daily-report', label: 'Daily Report', icon: Newspaper },
     { path: '/complaints', label: 'Complaints', icon: MessageSquare },
@@ -57,37 +60,37 @@ const Navbar = () => {
   const isCommunityActive = communityNav.some((item) => isActive(item.path))
 
   const linkClass = (active) =>
-    `flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+    `relative flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium transition-all duration-250 ease-brand ${
       active
-        ? 'text-primary-600 bg-primary-50'
-        : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+        ? 'text-gold-700 bg-gold-50'
+        : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
     }`
 
-  // All items flat for mobile
-  const allNavItems = [
-    ...primaryNav,
-    ...communityNav,
-    ...(isAdmin ? [{ path: '/admin/submissions', label: 'Admin Panel', icon: Shield }] : []),
-  ]
-
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <nav className="bg-cream-50/95 backdrop-blur-md border-b border-forest-100 sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-            <span className="text-lg font-bold text-gray-900 hidden sm:inline">
-              The Competent Community
+          <Link to="/preview" className="flex items-center gap-2 shrink-0 group">
+            {hasLogo ? (
+              <img
+                src="/logo.png"
+                alt="CB 5"
+                className="w-10 h-10 object-contain transition-transform duration-250 ease-brand group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-forest-700 to-gold-500 rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-cream-50 font-bold text-[11px] tracking-tight">CB5</span>
+              </div>
+            )}
+            <span className="font-display text-2xl tracking-tight leading-none">
+              <em className="not-italic text-gold-600">Connect</em>
             </span>
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-1">
-            {/* Primary links */}
             {primaryNav.map((item) => {
               const Icon = item.icon
               return (
@@ -102,22 +105,22 @@ const Navbar = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium transition-all duration-250 ease-brand ${
                   isCommunityActive
-                    ? 'text-primary-600 bg-primary-50'
-                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                    ? 'text-gold-700 bg-gold-50'
+                    : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
                 }`}
               >
                 <MessageSquare size={16} />
                 <span>Community</span>
                 <ChevronDown
                   size={14}
-                  className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                  className={`transition-transform duration-250 ease-brand ${dropdownOpen ? 'rotate-180' : ''}`}
                 />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                <div className="absolute right-0 mt-1.5 w-60 bg-cream-50 rounded-xl shadow-xl shadow-forest-900/10 border border-forest-100 py-1.5 z-50 overflow-hidden">
                   {communityNav.map((item) => {
                     const Icon = item.icon
                     return (
@@ -126,8 +129,8 @@ const Navbar = () => {
                         to={item.path}
                         className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors duration-150 ${
                           isActive(item.path)
-                            ? 'text-primary-600 bg-primary-50 font-medium'
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                            ? 'text-gold-700 bg-gold-50 font-medium'
+                            : 'text-forest-800 hover:bg-cream-100 hover:text-gold-700'
                         }`}
                       >
                         <Icon size={16} className="shrink-0" />
@@ -148,11 +151,11 @@ const Navbar = () => {
             )}
 
             {/* Divider + auth */}
-            <div className="w-px h-6 bg-gray-200 mx-1.5" />
+            <div className="w-px h-6 bg-forest-100 mx-2" />
             {isAdmin ? (
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200"
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors duration-250 ease-brand"
               >
                 <LogOut size={16} />
                 <span>Logout</span>
@@ -168,7 +171,7 @@ const Navbar = () => {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden text-gray-600 hover:text-primary-600 p-2 rounded-md"
+            className="lg:hidden text-forest-800 hover:text-gold-700 p-2 rounded-lg transition-colors"
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -178,10 +181,9 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white">
+        <div className="lg:hidden border-t border-forest-100 bg-cream-50">
           <div className="px-4 py-3 space-y-1">
-            {/* Main section */}
-            <p className="px-3 pt-1 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <p className="px-3 pt-1 pb-2 text-[10px] font-semibold text-forest-400 uppercase tracking-[0.18em]">
               Navigate
             </p>
             {primaryNav.map((item) => {
@@ -190,10 +192,10 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.path)
-                      ? 'text-primary-600 bg-primary-50'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                      ? 'text-gold-700 bg-gold-50'
+                      : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
                   }`}
                 >
                   <Icon size={18} />
@@ -202,8 +204,7 @@ const Navbar = () => {
               )
             })}
 
-            {/* Community section */}
-            <p className="px-3 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <p className="px-3 pt-4 pb-2 text-[10px] font-semibold text-forest-400 uppercase tracking-[0.18em]">
               Community
             </p>
             {communityNav.map((item) => {
@@ -212,10 +213,10 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.path)
-                      ? 'text-primary-600 bg-primary-50'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                      ? 'text-gold-700 bg-gold-50'
+                      : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
                   }`}
                 >
                   <Icon size={18} />
@@ -224,16 +225,15 @@ const Navbar = () => {
               )
             })}
 
-            {/* Auth section */}
-            <div className="border-t border-gray-100 mt-2 pt-2">
+            <div className="border-t border-forest-100 mt-2 pt-2">
               {isAdmin ? (
                 <>
                   <Link
                     to="/admin/submissions"
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive('/admin/submissions')
-                        ? 'text-primary-600 bg-primary-50'
-                        : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                        ? 'text-gold-700 bg-gold-50'
+                        : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
                     }`}
                   >
                     <Shield size={18} />
@@ -241,7 +241,7 @@ const Navbar = () => {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors w-full"
                   >
                     <LogOut size={18} />
                     <span>Logout</span>
@@ -250,10 +250,10 @@ const Navbar = () => {
               ) : (
                 <Link
                   to="/admin/login"
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/admin/login')
-                      ? 'text-primary-600 bg-primary-50'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                      ? 'text-gold-700 bg-gold-50'
+                      : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
                   }`}
                 >
                   <LogIn size={18} />

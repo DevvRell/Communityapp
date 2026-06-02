@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ClipboardList, ChevronDown, Calendar, FileText, List, Loader2, Play, PlusCircle, Users, Vote, CheckSquare, MessageCircle, Sparkles } from 'lucide-react'
+import PageHeader from '../components/ui/PageHeader'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -15,31 +16,6 @@ const CB5_COMMITTEES = [
   'Public Safety & Quality of Life',
   'Transportation & TLC',
   'General Board Meeting',
-]
-
-// Fallback hardcoded data in case API is not yet available
-const FALLBACK_UPDATES = [
-  {
-    id: 'planning',
-    committeeName: 'Land Use & Housing',
-    meetingDate: '2024-02-12',
-    agenda: 'Review of variance request – 123 Oak Street\nDiscussion: Downtown mixed-use development guidelines\nUpdate on Main Street sidewalk improvement project\nPublic comment period',
-    minutes: 'Meeting called to order at 6:00 PM. All members present.\nVariance request for 123 Oak Street was approved with conditions regarding setback compliance.\nCommittee agreed to draft revised mixed-use guidelines for council review by March 1.\nSidewalk project timeline confirmed; construction to begin April 15.\nThree residents spoke during public comment regarding noise ordinances.\nNext meeting scheduled for March 11, 2024.',
-  },
-  {
-    id: 'parks',
-    committeeName: 'Parks, Sanitation & Environment',
-    meetingDate: '2024-02-08',
-    agenda: 'Summer program registration timeline\nPark maintenance budget allocation\nNew playground equipment proposal – Riverside Park\nCommunity garden expansion request',
-    minutes: 'Meeting called to order at 5:30 PM.\nSummer program registration to open March 1; brochure to be distributed next week.\nBudget approved as presented; focus on trail repairs and restroom upgrades.\nRiverside Park playground proposal tabled pending cost estimates.\nCommunity garden expansion approved for 12 additional plots.\nNext meeting: February 22, 2024.',
-  },
-  {
-    id: 'safety',
-    committeeName: 'Public Safety & Quality of Life',
-    meetingDate: '2024-02-05',
-    agenda: 'Quarterly crime statistics report\nNeighborhood Watch program expansion\nEmergency preparedness drill schedule\nCrosswalk safety near schools',
-    minutes: 'Meeting called to order at 4:00 PM.\nCrime stats showed 8% decrease in property crime year-over-year.\nNeighborhood Watch to expand to Northside; training sessions set for March.\nCommunity-wide drill scheduled for April 20; flyers to be mailed.\nDPW and police to coordinate on crosswalk signage at Lincoln and Washington schools.\nAdjourned at 5:45 PM. Next meeting March 4, 2024.',
-  },
 ]
 
 function generateAISummary(note) {
@@ -101,13 +77,13 @@ const CommitteeUpdatesPage = () => {
           if (data && data.length > 0) {
             setUpdates(data)
           } else {
-            setUpdates(FALLBACK_UPDATES)
+            setUpdates([])
           }
         } else {
-          setUpdates(FALLBACK_UPDATES)
+          setUpdates([])
         }
       } catch {
-        setUpdates(FALLBACK_UPDATES)
+        setUpdates([])
       }
     }
 
@@ -163,18 +139,14 @@ const CommitteeUpdatesPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 flex items-center justify-center gap-2">
-            <ClipboardList className="text-primary-600" size={36} />
-            Committee Updates
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Meeting minutes and agendas for CB5 East New York committees
-          </p>
-        </div>
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="Committee Records"
+        title={<>The board's work, <em className="text-gold-300">in the open.</em></>}
+        subtitle="Meeting minutes, agendas, motions, and resolutions from every CB5 committee — searchable and shareable."
+      />
 
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* YouTube Latest Video Section */}
         {!videoLoading && video && video.videoId && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">

@@ -17,7 +17,8 @@
       "Bash(curl -s \"https://www.youtube.com/@cb5eny\")",
       "Bash(curl -sL \"https://www.youtube.com/@cb5eny\")",
       "Bash(docker exec:*)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/cb5_db\" npx prisma migrate resolve --applied 20260325010000_add_committee_notes)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/cb5_db\" npx prisma migrate resolve --applied 20260325010000_add_committee_notes)",
+      "Bash(docker ps:*)"
     ]
   }
 }

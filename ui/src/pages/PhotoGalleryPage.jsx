@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Image as ImageIcon, Upload, CheckCircle, Loader2 } from 'lucide-react'
 import { useToast } from '../components/Toast'
+import PageHeader from '../components/ui/PageHeader'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -87,18 +88,14 @@ const PhotoGalleryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="Community Archive"
+        title={<>The neighborhood, <em className="text-gold-300">through your lens.</em></>}
+        subtitle="A living archive of the people, places, and moments that define East New York. Submit your own — every photo is reviewed before going public."
+      />
 
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
-            <ImageIcon className="text-primary-600" size={32} />
-            Photo Gallery
-          </h1>
-          <p className="mt-2 text-gray-600">Submit a photo for review or browse approved community photos.</p>
-        </div>
-
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Upload section */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-10">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">

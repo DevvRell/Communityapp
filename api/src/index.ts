@@ -1,8 +1,8 @@
+import 'dotenv/config';
 import express, { Application, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import { prisma } from './lib/prisma';
 import businessesRouter from './routes/businesses';
 import complaintsRouter from './routes/complaints';
@@ -13,10 +13,11 @@ import statsRouter from './routes/stats';
 import youtubeRouter from './routes/youtube';
 import committeeUpdatesRouter from './routes/committeeUpdates';
 import committeeNotesRouter from './routes/committeeNotes';
+import subscribersRouter from './routes/subscribers';
+import feedbackRouter from './routes/feedback';
 import { ensureUploadDirs, APPROVED_DIR } from './utils/uploads';
 import { globalLimiter } from './middleware/rateLimits';
 
-dotenv.config();
 ensureUploadDirs();
 
 const app: Application = express();
@@ -218,6 +219,8 @@ app.use('/api/stats', statsRouter);
 app.use('/api/youtube', youtubeRouter);
 app.use('/api/committee-updates', committeeUpdatesRouter);
 app.use('/api/committee-notes', committeeNotesRouter);
+app.use('/api/subscribe', subscribersRouter);
+app.use('/api/feedback', feedbackRouter);
 
 // Serve approved uploads only (pending/ is NOT served)
 app.use('/uploads/approved', express.static(APPROVED_DIR));

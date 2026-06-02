@@ -1,7 +1,7 @@
 {
-  "name": "the-competent-community",
+  "name": "cb5-connect",
   "version": "1.0.0",
-  "description": "A community web application for The Competent Community",
+  "description": "CB 5 Connect — community web application for Brooklyn Community Board 5",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -12,10 +12,11 @@
     "lint:fix": "eslint . --ext js,jsx,ts,tsx --fix"
   },
   "dependencies": {
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
-    "lucide-react": "^0.263.1"
+    "react-router-dom": "^6.8.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.28",
@@ -38,7 +39,7 @@
     "webapp",
     "react"
   ],
-  "author": "The Competent Community",
+  "author": "CB 5 Connect",
   "license": "MIT",
   "type": "module",
   "engines": {

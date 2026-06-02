@@ -1,7 +1,13 @@
-
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, Building2, Calendar, MessageSquare, ClipboardList, ArrowRight, Star, Loader2 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import {
+  Building2, Calendar, MessageSquare, ClipboardList,
+  ArrowRight, Star, Image as ImageIcon, Newspaper,
+} from 'lucide-react'
+import PageHeader from '../components/ui/PageHeader'
+import Button from '../components/ui/Button'
+import { fadeUp, stagger, inView } from '../lib/motion'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -11,76 +17,22 @@ const HomePage = () => {
   const [upcomingEvent, setUpcomingEvent] = useState(null)
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/stats`)
-        if (res.ok) {
-          const data = await res.json()
-          setStats(data)
-        }
-      } catch {
-        // use fallback
-      }
-    }
-
-    const fetchBusiness = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/businesses`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data && data.length > 0) {
-            setFeaturedBusiness(data[0])
-          }
-        }
-      } catch {
-        // use fallback
-      }
-    }
-
-    const fetchEvent = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/events/upcoming`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data && data.length > 0) {
-            setUpcomingEvent(data[0])
-          }
-        }
-      } catch {
-        // use fallback
-      }
-    }
-
-    fetchStats()
-    fetchBusiness()
-    fetchEvent()
+    fetch(`${API_BASE}/api/stats`).then((r) => r.ok && r.json()).then(setStats).catch(() => {})
+    fetch(`${API_BASE}/api/businesses`).then((r) => r.ok && r.json()).then((d) => {
+      if (Array.isArray(d) && d.length) setFeaturedBusiness(d[0])
+    }).catch(() => {})
+    fetch(`${API_BASE}/api/events/upcoming`).then((r) => r.ok && r.json()).then((d) => {
+      if (Array.isArray(d) && d.length) setUpcomingEvent(d[0])
+    }).catch(() => {})
   }, [])
 
   const features = [
-    {
-      icon: Building2,
-      title: 'Business Directory',
-      description: 'Discover and support local businesses in your community',
-      link: '/businesses'
-    },
-    {
-      icon: Calendar,
-      title: 'Community Events',
-      description: 'Stay updated on local events and activities',
-      link: '/events'
-    },
-    {
-      icon: MessageSquare,
-      title: 'Voice Concerns',
-      description: 'Report issues and share feedback with the community',
-      link: '/complaints'
-    },
-    {
-      icon: ClipboardList,
-      title: 'Committee Updates',
-      description: 'Meeting minutes and agendas for community committees',
-      link: '/committee-updates'
-    }
+    { icon: Building2, title: 'Business Directory', description: 'Discover and support local businesses across the district.', link: '/businesses' },
+    { icon: Calendar, title: 'Community Events', description: 'Stay updated on meetings, festivals, clean-ups, and more.', link: '/events' },
+    { icon: MessageSquare, title: 'Voice Concerns', description: 'Report issues and track them through to resolution.', link: '/complaints' },
+    { icon: ClipboardList, title: 'Committee Updates', description: 'Meeting minutes, agendas, and motions from every committee.', link: '/committee-updates' },
+    { icon: Newspaper, title: 'Daily Report', description: 'Weather, transit, news — a snapshot of the day in the district.', link: '/daily-report' },
+    { icon: ImageIcon, title: 'Photo Gallery', description: 'A living archive of the people and places that define the neighborhood.', link: '/gallery' },
   ]
 
   const statItems = stats
@@ -88,130 +40,134 @@ const HomePage = () => {
         { label: 'Local Businesses', value: stats.businesses },
         { label: 'Upcoming Events', value: stats.upcomingEvents },
         { label: 'Complaints Filed', value: stats.complaints },
-        { label: 'Issues Resolved', value: stats.resolvedComplaints }
+        { label: 'Issues Resolved', value: stats.resolvedComplaints },
       ]
     : [
         { label: 'Local Businesses', value: '150+' },
         { label: 'Community Events', value: '25+' },
         { label: 'Active Members', value: '2,500+' },
-        { label: 'Issues Resolved', value: '95%' }
+        { label: 'Issues Resolved', value: '95%' },
       ]
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (s) => new Date(s).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              The Competent Community
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Connecting our community through local businesses, events, and open communication.
-              Together we build a stronger, more united neighborhood.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/businesses" className="btn-primary text-lg px-8 py-3">
-                Explore Businesses
-              </Link>
-              <Link to="/events" className="bg-white text-primary-600 hover:bg-gray-100 font-medium py-3 px-8 rounded-lg transition-colors duration-200 text-lg">
-                View Events
-              </Link>
-            </div>
-          </div>
+      <PageHeader
+        eyebrow="Brooklyn Community Board 5"
+        title={<>The neighborhood, <em className="text-gold-300">connected.</em></>}
+        subtitle="Local businesses, community events, committee updates, and the issues that shape your block — under one roof."
+        size="lg"
+      >
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link to="/businesses">
+            <Button variant="primary" iconRight={ArrowRight}>Explore Businesses</Button>
+          </Link>
+          <Link to="/events">
+            <Button variant="ghost" className="!bg-cream-50/10 !text-cream-50 !border-cream-100/20 hover:!bg-cream-50/20">
+              View Events
+            </Button>
+          </Link>
         </div>
-      </section>
+      </PageHeader>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Stats strip */}
+      <motion.section
+        {...inView}
+        variants={stagger(0.08)}
+        className="bg-cream-50 border-b border-forest-100"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {statItems.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary-600 mb-2">
+            {statItems.map((stat, i) => (
+              <motion.div key={i} variants={fadeUp} className="text-center">
+                <div className="font-display text-4xl md:text-5xl text-forest-800 mb-1 tabular-nums tracking-tight">
                   {stat.value}
                 </div>
-                <div className="text-gray-600">{stat.label}</div>
-              </div>
+                <div className="text-sm text-forest-600 uppercase tracking-[0.12em]">{stat.label}</div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      {/* Features */}
+      <motion.section
+        {...inView}
+        variants={stagger(0.06)}
+        className="py-20 bg-cream-50"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              What We Offer
+          <motion.div variants={fadeUp} className="text-center mb-14">
+            <span className="inline-block px-3 py-1 mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] bg-gold-100 text-gold-800 border border-gold-200 rounded-full">
+              What we offer
+            </span>
+            <h2 className="font-display text-4xl sm:text-5xl tracking-tight text-forest-900 leading-[1.05]">
+              Everything you need to stay <em className="text-gold-600">connected</em>.
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our platform provides everything you need to stay connected with your community
-            </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature, index) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((feature, i) => {
               const Icon = feature.icon
               return (
-                <div key={index} className="card hover:shadow-lg transition-shadow duration-300">
-                  <div className="flex items-center justify-center w-12 h-12 bg-primary-100 rounded-lg mb-4">
-                    <Icon className="text-primary-600" size={24} />
+                <motion.div
+                  key={i}
+                  variants={fadeUp}
+                  className="group bg-white rounded-2xl border border-forest-100 hover:border-gold-300 hover:shadow-lg hover:shadow-forest-900/5 p-6 transition-all duration-250 ease-brand hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-forest-700 to-forest-600 rounded-xl mb-4 shadow-md shadow-forest-900/20">
+                    <Icon className="text-gold-300" size={22} />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  <h3 className="font-display text-2xl text-forest-900 mb-2 tracking-tight">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-forest-700/80 mb-4 leading-relaxed">
                     {feature.description}
                   </p>
                   <Link
                     to={feature.link}
-                    className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
+                    className="inline-flex items-center gap-1.5 text-gold-700 hover:text-gold-600 font-semibold text-sm transition-colors"
                   >
-                    Learn more <ArrowRight size={16} className="ml-1" />
+                    Learn more <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                   </Link>
-                </div>
+                </motion.div>
               )
             })}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Community Highlight */}
-      <section className="py-20 bg-white">
+      {/* Spotlight */}
+      <motion.section
+        {...inView}
+        variants={stagger(0.06)}
+        className="py-20 bg-white border-t border-forest-100"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Community Spotlight
+          <motion.div variants={fadeUp} className="text-center mb-14">
+            <span className="inline-block px-3 py-1 mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full">
+              Community spotlight
+            </span>
+            <h2 className="font-display text-4xl sm:text-5xl tracking-tight text-forest-900 leading-[1.05]">
+              See what's happening <em className="text-gold-600">on the block</em>.
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              See what's happening in our neighborhood
-            </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Featured Business */}
-            <div className="card">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                  <Building2 className="text-primary-600" size={20} />
+            <motion.div variants={fadeUp} className="bg-cream-50 rounded-2xl border border-forest-100 hover:border-gold-300 transition-all p-6">
+              <div className="flex items-center mb-4 gap-3">
+                <div className="w-12 h-12 bg-forest-700 rounded-xl flex items-center justify-center shadow-md">
+                  <Building2 className="text-gold-300" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="font-display text-xl text-forest-900 leading-tight">
                     {featuredBusiness ? featuredBusiness.name : "Joe's Coffee Shop"}
                   </h3>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Star className="text-yellow-400" size={14} />
-                    <span className="ml-1">
+                  <div className="flex items-center text-sm text-forest-600 gap-1">
+                    <Star className="text-gold-500 fill-gold-500" size={13} />
+                    <span>
                       {featuredBusiness
                         ? `${Number(featuredBusiness.rating).toFixed(1)} (${featuredBusiness.reviews} reviews)`
                         : '4.8 (120 reviews)'}
@@ -219,64 +175,64 @@ const HomePage = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-forest-700/80 mb-4 leading-relaxed text-sm">
                 {featuredBusiness
                   ? (featuredBusiness.description || `Local ${featuredBusiness.category.toLowerCase()} business serving the East New York community.`)
                   : 'Local coffee shop serving the community with fresh brews and friendly service.'}
               </p>
-              <Link to="/businesses" className="text-primary-600 hover:text-primary-700 font-medium">
-                Visit Business →
+              <Link to="/businesses" className="inline-flex items-center gap-1.5 text-gold-700 hover:text-gold-600 font-semibold text-sm">
+                Visit business <ArrowRight size={14} />
               </Link>
-            </div>
+            </motion.div>
 
             {/* Upcoming Event */}
-            <div className="card">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-secondary-100 rounded-lg flex items-center justify-center mr-3">
-                  <Calendar className="text-secondary-600" size={20} />
+            <motion.div variants={fadeUp} className="bg-cream-50 rounded-2xl border border-forest-100 hover:border-gold-300 transition-all p-6">
+              <div className="flex items-center mb-4 gap-3">
+                <div className="w-12 h-12 bg-forest-700 rounded-xl flex items-center justify-center shadow-md">
+                  <Calendar className="text-gold-300" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="font-display text-xl text-forest-900 leading-tight">
                     {upcomingEvent ? upcomingEvent.title : 'Community Cleanup'}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-forest-600">
                     {upcomingEvent
                       ? `${formatDate(upcomingEvent.date)}, ${upcomingEvent.time}`
                       : 'This Saturday, 9 AM'}
                   </p>
                 </div>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-forest-700/80 mb-4 leading-relaxed text-sm">
                 {upcomingEvent
                   ? upcomingEvent.description
-                  : "Join us for our monthly community cleanup event. Let's keep our neighborhood beautiful!"}
+                  : "Join us for our monthly community cleanup. Let's keep our neighborhood beautiful."}
               </p>
-              <Link to="/events" className="text-primary-600 hover:text-primary-700 font-medium">
-                View Event →
+              <Link to="/events" className="inline-flex items-center gap-1.5 text-gold-700 hover:text-gold-600 font-semibold text-sm">
+                View event <ArrowRight size={14} />
               </Link>
-            </div>
+            </motion.div>
 
-            {/* Recent Resolution */}
-            <div className="card">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                  <MessageSquare className="text-green-600" size={20} />
+            {/* Community Voice */}
+            <motion.div variants={fadeUp} className="bg-cream-50 rounded-2xl border border-forest-100 hover:border-gold-300 transition-all p-6">
+              <div className="flex items-center mb-4 gap-3">
+                <div className="w-12 h-12 bg-forest-700 rounded-xl flex items-center justify-center shadow-md">
+                  <MessageSquare className="text-gold-300" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Community Voice</h3>
-                  <p className="text-sm text-gray-600">Report neighborhood issues</p>
+                  <h3 className="font-display text-xl text-forest-900 leading-tight">Community Voice</h3>
+                  <p className="text-sm text-forest-600">Report neighborhood issues</p>
                 </div>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-forest-700/80 mb-4 leading-relaxed text-sm">
                 Help keep our community safe and well-maintained by reporting issues to your local board.
               </p>
-              <Link to="/complaints" className="text-primary-600 hover:text-primary-700 font-medium">
-                Report Issue →
+              <Link to="/complaints" className="inline-flex items-center gap-1.5 text-gold-700 hover:text-gold-600 font-semibold text-sm">
+                Report issue <ArrowRight size={14} />
               </Link>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   )
 }

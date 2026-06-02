@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ClipboardList, Plus, Trash2, Loader2, CheckCircle, Paperclip, X, FileText, Search } from 'lucide-react'
 import { committeeNotesAPI } from '../services/api'
+import PageHeader from '../components/ui/PageHeader'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -319,19 +320,19 @@ const CommitteeNotesSubmitPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
-            <ClipboardList className="text-primary-600" size={32} />
-            {isEditMode ? 'Edit Meeting Notes' : 'Submit Meeting Notes'}
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {isEditMode
-              ? 'Update your pending submission. Changes will be saved for admin review.'
-              : 'Record meeting minutes for a CB5 committee. All submissions are reviewed before publishing.'}
-          </p>
-        </div>
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="Committee Notes"
+        title={isEditMode
+          ? (<>Edit your <em className="text-gold-300">submission.</em></>)
+          : (<>Submit meeting <em className="text-gold-300">notes.</em></>)}
+        subtitle={isEditMode
+          ? 'Update your pending submission. Changes will be saved for admin review.'
+          : 'Record minutes from a CB5 committee meeting. All submissions are reviewed before publishing.'}
+        size="sm"
+      />
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
         {/* Edit Lookup */}
         {!isEditMode && (

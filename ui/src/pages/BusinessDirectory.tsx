@@ -4,6 +4,7 @@ import { useBusinesses, useSearchBusinesses, useCreateBusiness } from '../servic
 import { useToast } from '../components/Toast'
 import { useDebounce } from '../hooks/useDebounce'
 import type { Business, CreateBusinessRequest } from '../types/api'
+import PageHeader from '../components/ui/PageHeader'
 
 const ITEMS_PER_PAGE = 12
 
@@ -69,16 +70,14 @@ const BusinessDirectory = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Business Directory</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Discover and support local businesses in your community. Find everything you need right in your neighborhood.
-          </p>
-        </div>
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="Neighborhood Directory"
+        title={<>Local businesses, <em className="text-gold-300">all in one place.</em></>}
+        subtitle="Discover and support the restaurants, shops, and services that make East New York what it is."
+      />
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Search, Filter & Add */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

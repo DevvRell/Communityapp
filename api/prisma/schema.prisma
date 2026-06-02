@@ -132,6 +132,29 @@ model CommitteeNote {
   @@map("committee_notes")
 }
 
+model Subscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("subscribers")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  message   String
+  email     String?
+  category  String?
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([category])
+  @@map("feedback")
+}
+
 model CommitteeUpdate {
   id                Int              @id @default(autoincrement())
   committeeName     String

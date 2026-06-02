@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, MapPin, CloudSun, Train, AlertCircle, Loader2, ExternalLink } from 'lucide-react'
 import { useUpcomingEvents } from '../services/apiClient'
 import type { Event } from '../types/api'
+import PageHeader from '../components/ui/PageHeader'
 
 // ── East New York coordinates ─────────────────────────────────────────────────
 const LAT = 40.6654
@@ -134,18 +135,15 @@ export default function TestHomePage() {
   const wc = weather ? weatherLabel(weather.current.weather_code) : null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ── Page header ──────────────────────────────────────────────────────── */}
-      <div className="bg-primary-700 text-white py-8 px-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold">East New York — Daily Report</h1>
-          <p className="text-primary-200 mt-1">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-cream-50">
+      <PageHeader
+        eyebrow="East New York"
+        title={<>The day, <em className="text-gold-300">in one glance.</em></>}
+        subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        size="sm"
+      />
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
 
         {/* ── Top row: Weather + MTA ──────────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
