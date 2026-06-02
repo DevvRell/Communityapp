@@ -13,6 +13,7 @@ import CommitteeUpdatesPage from './pages/CommitteeUpdatesPage'
 import PhotoGalleryPage from './pages/PhotoGalleryPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage'
+import AdminDataPage from './pages/AdminDataPage'
 import CommitteeNotesSubmitPage from './pages/CommitteeNotesSubmitPage'
 
 // Routes that render their own full-bleed chrome (no global Navbar/Footer)
@@ -41,6 +42,11 @@ function Shell() {
           <Route path="/admin/submissions" element={
             <ProtectedRoute>
               <AdminSubmissionsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/data" element={
+            <ProtectedRoute>
+              <AdminDataPage />
             </ProtectedRoute>
           } />
         </Routes>

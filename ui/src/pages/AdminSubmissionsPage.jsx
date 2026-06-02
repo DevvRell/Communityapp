@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Shield, Filter, CheckCircle, XCircle, Trash2, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2, Search } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Shield, Filter, CheckCircle, XCircle, Trash2, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2, Search, Database } from 'lucide-react'
 import { adminAPI, ApiClientError } from '../services/api'
 import { useToast } from '../components/Toast'
 import PageHeader from '../components/ui/PageHeader'
@@ -157,14 +157,22 @@ const AdminSubmissionsPage = () => {
         subtitle="Approve, reject, or delete pending community submissions."
         size="sm"
       >
-        <button
-          onClick={fetchSubmissions}
-          disabled={loading}
-          className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin/data"
+            className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 transition-colors"
+          >
+            <Database size={15} /> Manage data
+          </Link>
+          <button
+            onClick={fetchSubmissions}
+            disabled={loading}
+            className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </PageHeader>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
