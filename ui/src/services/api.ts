@@ -361,6 +361,82 @@ export const adminAPI = {
 };
 
 // ============================================================================
+// Admin Data API (generic schema-driven CRUD over DB tables)
+// ============================================================================
+
+export interface AdminFieldDef {
+  name: string;
+  label: string;
+  type: 'string' | 'text' | 'number' | 'decimal' | 'boolean' | 'date' | 'datetime' | 'json' | 'enum';
+  required?: boolean;
+  readOnly?: boolean;
+  enumValues?: string[];
+}
+
+export interface AdminTableMeta {
+  slug: string;
+  label: string;
+  capabilities: { create: boolean; update: boolean; delete: boolean };
+  listColumns: string[];
+  searchFields: string[];
+  hasSubmissionStatus: boolean;
+  fields: AdminFieldDef[];
+}
+
+export interface AdminListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}
+
+export const adminDataAPI = {
+  listTables: async (): Promise<{ tables: AdminTableMeta[] }> => {
+    return apiRequest('/api/admin/data/tables', { headers: getAdminHeaders() });
+  },
+
+  list: async (
+    table: string,
+    params: AdminListParams = {}
+  ): Promise<{ data: any[]; total: number; page: number; limit: number }> => {
+    const query = buildQueryString({
+      page: params.page ? String(params.page) : undefined,
+      limit: params.limit ? String(params.limit) : undefined,
+      search: params.search || undefined,
+      status: params.status || undefined,
+    });
+    return apiRequest(`/api/admin/data/${table}${query}`, { headers: getAdminHeaders() });
+  },
+
+  get: async (table: string, id: number): Promise<any> => {
+    return apiRequest(`/api/admin/data/${table}/${id}`, { headers: getAdminHeaders() });
+  },
+
+  create: async (table: string, data: Record<string, any>): Promise<any> => {
+    return apiRequest(`/api/admin/data/${table}`, {
+      method: 'POST',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (table: string, id: number, data: Record<string, any>): Promise<any> => {
+    return apiRequest(`/api/admin/data/${table}/${id}`, {
+      method: 'PUT',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  remove: async (table: string, id: number): Promise<any> => {
+    return apiRequest(`/api/admin/data/${table}/${id}`, {
+      method: 'DELETE',
+      headers: getAdminHeaders(),
+    });
+  },
+};
+
+// ============================================================================
 // Committee Notes API
 // ============================================================================
 
@@ -412,5 +488,6 @@ export default {
   event: eventAPI,
   health: healthAPI,
   admin: adminAPI,
+  adminData: adminDataAPI,
   committeeNotes: committeeNotesAPI,
 };

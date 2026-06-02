@@ -4,6 +4,7 @@ import { SubmissionStatus } from '@prisma/client';
 import { requireAdmin } from '../middleware/auth';
 import { deleteFromCloudinary } from '../utils/cloudinary';
 import { loginLimiter } from '../middleware/rateLimits';
+import { TABLES, getTable, buildWriteData, serializeRecord } from '../admin/dataTables';
 
 const router = Router();
 
@@ -310,6 +311,217 @@ router.post('/submissions/:type/:id/reject', async (req: Request, res: Response)
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to reject.' });
+  }
+});
+
+// ============================================================================
+// Generic table CRUD (schema-driven, see ../admin/dataTables.ts)
+// All routes below inherit requireAdmin from router.use() above.
+// ============================================================================
+
+type PrismaDelegate = {
+  findMany: (args: unknown) => Promise<Record<string, unknown>[]>;
+  findUnique: (args: unknown) => Promise<Record<string, unknown> | null>;
+  count: (args: unknown) => Promise<number>;
+  create: (args: unknown) => Promise<Record<string, unknown>>;
+  update: (args: unknown) => Promise<Record<string, unknown>>;
+  delete: (args: unknown) => Promise<Record<string, unknown>>;
+};
+
+function delegateFor(model: string): PrismaDelegate {
+  return (prisma as unknown as Record<string, PrismaDelegate>)[model];
+}
+
+/** Map known Prisma errors to friendly HTTP responses; returns true if handled. */
+function handlePrismaError(e: unknown, res: Response): boolean {
+  const code = (e as { code?: string })?.code;
+  if (code === 'P2025') {
+    res.status(404).json({ error: 'Record not found.' });
+    return true;
+  }
+  if (code === 'P2002') {
+    const target = (e as { meta?: { target?: string[] } })?.meta?.target;
+    const field = Array.isArray(target) ? target.join(', ') : 'a unique field';
+    res.status(409).json({ error: `A record with this ${field} already exists.` });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * GET /api/admin/data/tables
+ * Returns registry metadata so the UI can build grids and forms.
+ * NOTE: must be registered before '/data/:table' so 'tables' isn't read as a slug.
+ */
+router.get('/data/tables', (_req: Request, res: Response) => {
+  const tables = Object.entries(TABLES).map(([slug, def]) => ({
+    slug,
+    label: def.label,
+    capabilities: def.capabilities,
+    listColumns: def.listColumns,
+    searchFields: def.searchFields,
+    hasSubmissionStatus: def.fields.some((f) => f.name === 'submissionStatus'),
+    fields: def.fields,
+  }));
+  res.json({ tables });
+});
+
+/**
+ * GET /api/admin/data/:table
+ * Paginated list with optional ?search= and ?status= (submissionStatus) filters.
+ */
+router.get('/data/:table', async (req: Request, res: Response) => {
+  try {
+    const table = getTable(req.params.table);
+    if (!table) return res.status(404).json({ error: 'Unknown table.' });
+
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string, 10) || 25));
+    const search = (req.query.search as string | undefined)?.trim();
+    const status = req.query.status as string | undefined;
+
+    const where: Record<string, unknown> = {};
+    if (search && table.searchFields.length) {
+      where.OR = table.searchFields.map((f) => ({
+        [f]: { contains: search, mode: 'insensitive' },
+      }));
+    }
+    if (status && table.fields.some((f) => f.name === 'submissionStatus')) {
+      where.submissionStatus = status;
+    }
+
+    const delegate = delegateFor(table.model);
+    const [rows, total] = await Promise.all([
+      delegate.findMany({
+        where,
+        orderBy: { id: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      delegate.count({ where }),
+    ]);
+
+    res.json({
+      data: rows.map((r) => serializeRecord(table, r)),
+      total,
+      page,
+      limit,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to list records.' });
+  }
+});
+
+/**
+ * GET /api/admin/data/:table/:id
+ */
+router.get('/data/:table/:id', async (req: Request, res: Response) => {
+  try {
+    const table = getTable(req.params.table);
+    if (!table) return res.status(404).json({ error: 'Unknown table.' });
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+
+    const row = await delegateFor(table.model).findUnique({ where: { id } });
+    if (!row) return res.status(404).json({ error: 'Record not found.' });
+    res.json(serializeRecord(table, row));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to fetch record.' });
+  }
+});
+
+/**
+ * POST /api/admin/data/:table
+ */
+router.post('/data/:table', async (req: Request, res: Response) => {
+  try {
+    const table = getTable(req.params.table);
+    if (!table) return res.status(404).json({ error: 'Unknown table.' });
+    if (!table.capabilities.create) {
+      return res.status(403).json({ error: `Creating ${table.label} is not supported.` });
+    }
+
+    let data: Record<string, unknown>;
+    try {
+      data = buildWriteData(table, (req.body as Record<string, unknown>) || {}, true);
+    } catch (validationErr) {
+      return res.status(400).json({ error: (validationErr as Error).message });
+    }
+
+    const row = await delegateFor(table.model).create({ data });
+    res.status(201).json(serializeRecord(table, row));
+  } catch (e) {
+    if (handlePrismaError(e, res)) return;
+    console.error(e);
+    res.status(500).json({ error: 'Failed to create record.' });
+  }
+});
+
+/**
+ * PUT /api/admin/data/:table/:id
+ */
+router.put('/data/:table/:id', async (req: Request, res: Response) => {
+  try {
+    const table = getTable(req.params.table);
+    if (!table) return res.status(404).json({ error: 'Unknown table.' });
+    if (!table.capabilities.update) {
+      return res.status(403).json({ error: `Updating ${table.label} is not supported.` });
+    }
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+
+    let data: Record<string, unknown>;
+    try {
+      data = buildWriteData(table, (req.body as Record<string, unknown>) || {}, false);
+    } catch (validationErr) {
+      return res.status(400).json({ error: (validationErr as Error).message });
+    }
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'No editable fields provided.' });
+    }
+
+    const row = await delegateFor(table.model).update({ where: { id }, data });
+    res.json(serializeRecord(table, row));
+  } catch (e) {
+    if (handlePrismaError(e, res)) return;
+    console.error(e);
+    res.status(500).json({ error: 'Failed to update record.' });
+  }
+});
+
+/**
+ * DELETE /api/admin/data/:table/:id
+ * Photos are also removed from Cloudinary.
+ */
+router.delete('/data/:table/:id', async (req: Request, res: Response) => {
+  try {
+    const table = getTable(req.params.table);
+    if (!table) return res.status(404).json({ error: 'Unknown table.' });
+    if (!table.capabilities.delete) {
+      return res.status(403).json({ error: `Deleting ${table.label} is not supported.` });
+    }
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+
+    const delegate = delegateFor(table.model);
+
+    if (table.model === 'photo') {
+      const photo = await delegate.findUnique({ where: { id } });
+      if (!photo) return res.status(404).json({ error: 'Record not found.' });
+      const storedPath = (photo as { storedPath?: string }).storedPath;
+      if (storedPath) {
+        await deleteFromCloudinary(storedPath).catch(() => {});
+      }
+    }
+
+    await delegate.delete({ where: { id } });
+    res.json({ message: `${table.label} #${id} deleted.`, table: req.params.table, id });
+  } catch (e) {
+    if (handlePrismaError(e, res)) return;
+    console.error(e);
+    res.status(500).json({ error: 'Failed to delete record.' });
   }
 });
 
