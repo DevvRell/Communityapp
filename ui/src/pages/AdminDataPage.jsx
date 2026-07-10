@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import {
   Database, Plus, Pencil, Trash2, Search, RefreshCw, Loader2,
   AlertCircle, ChevronLeft, ChevronRight, ClipboardCheck, Table2,
@@ -42,6 +42,7 @@ const StatusBadge = ({ value }) => {
 export default function AdminDataPage() {
   const navigate = useNavigate()
   const toast = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [tables, setTables] = useState([])
   const [activeSlug, setActiveSlug] = useState(null)
@@ -79,7 +80,9 @@ export default function AdminDataPage() {
       .then((res) => {
         if (cancelled) return
         setTables(res.tables || [])
-        setActiveSlug((prev) => prev || res.tables?.[0]?.slug || null)
+        const requested = searchParams.get('table')
+        const requestedValid = requested && res.tables?.some((t) => t.slug === requested)
+        setActiveSlug((prev) => prev || (requestedValid ? requested : res.tables?.[0]?.slug) || null)
       })
       .catch((e) => {
         if (cancelled) return
@@ -110,6 +113,7 @@ export default function AdminDataPage() {
   // Reset paging/filters when switching tables.
   const selectTable = (slug) => {
     setActiveSlug(slug)
+    setSearchParams({ table: slug }, { replace: true })
     setPage(1)
     setSearch('')
     setStatusFilter('')

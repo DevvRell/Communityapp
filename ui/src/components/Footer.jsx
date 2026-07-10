@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, Phone, MapPin } from 'lucide-react'
+import { Mail, Phone } from 'lucide-react'
 
 const Footer = () => {
   const [hasLogo, setHasLogo] = useState(false)
@@ -41,20 +41,17 @@ const Footer = () => {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="mailto:info@brooklyncb5.org"
+                href="mailto:contact@tjb4nyc.com"
                 className="w-9 h-9 rounded-lg bg-forest-800/60 border border-cream-100/10 flex items-center justify-center text-cream-100/80 hover:text-gold-300 hover:border-gold-400/40 transition-all"
               >
                 <Mail size={16} />
               </a>
               <a
-                href="tel:+17186294744"
+                href="tel:+13479159955"
                 className="w-9 h-9 rounded-lg bg-forest-800/60 border border-cream-100/10 flex items-center justify-center text-cream-100/80 hover:text-gold-300 hover:border-gold-400/40 transition-all"
               >
                 <Phone size={16} />
               </a>
-              <span className="w-9 h-9 rounded-lg bg-forest-800/60 border border-cream-100/10 flex items-center justify-center text-cream-100/80">
-                <MapPin size={16} />
-              </span>
             </div>
           </div>
 
@@ -88,9 +85,16 @@ const Footer = () => {
               Reach Us
             </h3>
             <div className="space-y-2 text-cream-100/75">
-              <p>info@brooklyncb5.org</p>
-              <p>(718) 629-4744</p>
-              <p>1285 Decatur St<br />Brooklyn, NY 11207</p>
+              <p>
+                <a href="mailto:contact@tjb4nyc.com" className="hover:text-gold-300 transition-colors">
+                  contact@tjb4nyc.com
+                </a>
+              </p>
+              <p>
+                <a href="tel:+13479159955" className="hover:text-gold-300 transition-colors">
+                  347-915-9955
+                </a>
+              </p>
             </div>
           </div>
         </div>
