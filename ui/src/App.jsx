@@ -14,6 +14,7 @@ import PhotoGalleryPage from './pages/PhotoGalleryPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage'
 import AdminDataPage from './pages/AdminDataPage'
+import AdminEmailsPage from './pages/AdminEmailsPage'
 import CommitteeNotesSubmitPage from './pages/CommitteeNotesSubmitPage'
 
 // Routes that render their own full-bleed chrome (no global Navbar/Footer)
@@ -47,6 +48,11 @@ function Shell() {
           <Route path="/admin/data" element={
             <ProtectedRoute>
               <AdminDataPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/emails" element={
+            <ProtectedRoute>
+              <AdminEmailsPage />
             </ProtectedRoute>
           } />
         </Routes>

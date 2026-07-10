@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Building2, Calendar, MessageSquare, ClipboardList,
-  Image, Shield, Newspaper, Menu, X, LogOut, LogIn, ChevronDown,
+  Image, Shield, Newspaper, Menu, X, LogOut, LogIn, ChevronDown, Mail,
 } from 'lucide-react'
 import { adminAPI } from '../services/api'
 
@@ -142,12 +142,18 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Admin link */}
+            {/* Admin links */}
             {isAdmin && (
-              <Link to="/admin/submissions" className={linkClass(isActive('/admin/submissions'))}>
-                <Shield size={16} />
-                <span>Admin</span>
-              </Link>
+              <>
+                <Link to="/admin/submissions" className={linkClass(isActive('/admin/submissions'))}>
+                  <Shield size={16} />
+                  <span>Admin</span>
+                </Link>
+                <Link to="/admin/emails" className={linkClass(isActive('/admin/emails'))}>
+                  <Mail size={16} />
+                  <span>Emails</span>
+                </Link>
+              </>
             )}
 
             {/* Divider + auth */}
@@ -238,6 +244,17 @@ const Navbar = () => {
                   >
                     <Shield size={18} />
                     <span>Admin Panel</span>
+                  </Link>
+                  <Link
+                    to="/admin/emails"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive('/admin/emails')
+                        ? 'text-gold-700 bg-gold-50'
+                        : 'text-forest-800 hover:text-gold-700 hover:bg-cream-100'
+                    }`}
+                  >
+                    <Mail size={18} />
+                    <span>Emails &amp; Feedback</span>
                   </Link>
                   <button
                     onClick={handleLogout}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import {
   Database, Plus, Pencil, Trash2, Search, RefreshCw, Loader2,
-  AlertCircle, ChevronLeft, ChevronRight, ClipboardCheck, Table2,
+  AlertCircle, ChevronLeft, ChevronRight, ClipboardCheck, Table2, Mail,
 } from 'lucide-react'
 import { adminDataAPI, adminAPI, ApiClientError } from '../services/api'
 import { useToast } from '../components/Toast'
@@ -168,6 +168,12 @@ export default function AdminDataPage() {
         size="sm"
       >
         <div className="flex items-center gap-2">
+          <Link
+            to="/admin/emails"
+            className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 transition-colors"
+          >
+            <Mail size={15} /> Emails & feedback
+          </Link>
           <Link
             to="/admin/submissions"
             className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 transition-colors"

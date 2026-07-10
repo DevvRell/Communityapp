@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Shield, Filter, CheckCircle, XCircle, Trash2, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2, Search, Database, Mail, Lightbulb } from 'lucide-react'
+import { Shield, Filter, CheckCircle, XCircle, Trash2, Image, Building2, MessageSquare, Calendar, AlertCircle, RefreshCw, Loader2, Search, Database, Mail } from 'lucide-react'
 import { adminAPI, ApiClientError } from '../services/api'
 import { useToast } from '../components/Toast'
 import PageHeader from '../components/ui/PageHeader'
@@ -159,16 +159,10 @@ const AdminSubmissionsPage = () => {
       >
         <div className="flex items-center gap-2">
           <Link
-            to="/admin/data?table=subscribers"
+            to="/admin/emails"
             className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 transition-colors"
           >
-            <Mail size={15} /> Email signups
-          </Link>
-          <Link
-            to="/admin/data?table=feedback"
-            className="inline-flex items-center gap-2 text-sm text-cream-100 bg-forest-800/60 border border-cream-100/15 rounded-lg px-3 py-2 hover:bg-forest-800 transition-colors"
-          >
-            <Lightbulb size={15} /> Feedback
+            <Mail size={15} /> Emails & feedback
           </Link>
           <Link
             to="/admin/data"
